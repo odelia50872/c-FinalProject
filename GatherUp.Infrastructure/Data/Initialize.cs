@@ -21,14 +21,14 @@ namespace GatherUp.Infrastructure.Data
             {
                 Id = 1,
                 Name = "Noa Cohen",
-                Email = "noa.cohen@example.com",
+                Email = "noa.cohen@gmail.com",
                 PhoneNumber = "050-1234567" 
             }; 
             var host = new EventHost
             { 
                 Id = 2,
                 Name = "Michal Levi",
-                Email = "michal.levi@example.com",
+                Email = "michal.levi@gmail.com",
                 PhoneNumber = "052-7654321"
             };
 

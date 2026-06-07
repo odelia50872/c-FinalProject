@@ -8,5 +8,6 @@ namespace GatherUp.core.DO
 {
     public class EventHost:Person
     {
+        public EventHost() : base() { }
     }
 }

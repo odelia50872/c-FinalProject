@@ -15,6 +15,7 @@ public enum MailingPreference
 
 public class Participant : Person
 {
+    public Participant() : base() { }
     public bool? IsAttending { get; set; }
     public bool HasPaid { get; set; }
     public decimal AmountContributed { get; set; }
