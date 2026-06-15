@@ -1,8 +1,9 @@
-﻿using GatherUp.core.DO;
-using GatherUp.Infrastructure.Data;
-using GatherUp.Infrastructure.Memory;
-using GatherUp.Infrastructure.Repositories;
+using GatherUp.BL.Services;
+using GatherUp.core.DO;
 using GatherUp.core.interfaces;
+using GatherUp.Infrastructure.Data;
+using GatherUp.Infrastructure.Repositories;
+using GatherUp.Infrastructure.Services;
 
 namespace GatherUp.Tests
 {
@@ -11,78 +12,122 @@ namespace GatherUp.Tests
         public static void Main(string[] args)
         {
             Console.OutputEncoding = System.Text.Encoding.UTF8;
+            Console.InputEncoding = System.Text.Encoding.UTF8;
+            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo("cmd", "/c chcp 65001") { CreateNoWindow = true })?.WaitForExit();
             Console.WriteLine("=== Starting GatherUp System Test ===");
 
             string xmlFolder = Path.Combine(AppContext.BaseDirectory, "XML");
             string receiptsFolder = Path.Combine(AppContext.BaseDirectory, "Receipts");
 
-            if (Directory.Exists(xmlFolder))
-                Directory.Delete(xmlFolder, true);
+            if (Directory.Exists(xmlFolder)) Directory.Delete(xmlFolder, true);
             Directory.CreateDirectory(xmlFolder);
             Directory.CreateDirectory(receiptsFolder);
-
-            RunWithMemory();
-            RunWithXml(xmlFolder, receiptsFolder);
-        }
-
-        static void RunWithMemory()
-        {
-            Console.WriteLine("\n=== Memory Repository ===");
-            var eventRepo = new MemoryRepository<Event>();
-            var participantRepo = new MemoryRepository<Participant>();
-            var managerRepo = new MemoryRepository<EventManager>();
-            var hostRepo = new MemoryRepository<EventHost>();
-            var pollRepo = new MemoryRepository<Poll>();
-
-            InitializeData.Initialize(eventRepo, participantRepo, managerRepo, hostRepo, pollRepo);
-            Console.WriteLine("-> Data initialized in memory.");
-        }
-
-        static void RunWithXml(string xmlFolder, string receiptsFolder)
-        {
-            Console.WriteLine("\n=== XML Repository ===");
 
             var eventRepo = new XmlRepository<Event>(xmlFolder);
             var participantRepo = new XmlRepository<Participant>(xmlFolder);
             var managerRepo = new XmlRepository<EventManager>(xmlFolder);
             var hostRepo = new XmlRepository<EventHost>(xmlFolder);
             var pollRepo = new XmlRepository<Poll>(xmlFolder);
-            var receiptRepo = new ReceiptRepository(xmlFolder, receiptsFolder);
 
             InitializeData.Initialize(eventRepo, participantRepo, managerRepo, hostRepo, pollRepo);
             Console.WriteLine("-> Data initialized to XML files.");
 
-            // הוספת 3 משתתפים נוספים
-            Console.WriteLine("\n-> Adding 3 new participants...");
-            participantRepo.Add(new Participant { Id = 101, Name = "Adi Levi", Email = "adi@gmail.com", PhoneNumber = "050-1112223", IsAttending = true });
-            participantRepo.Add(new Participant { Id = 102, Name = "Roni Cohen", Email = "roni@gmail.com", PhoneNumber = "052-4445556", IsAttending = false });
-            participantRepo.Add(new Participant { Id = 103, Name = "Shira Avni", Email = "shira@gmail.com", PhoneNumber = "054-7778889", IsAttending = null });
+            var mailService = new MailService(Path.Combine(AppContext.BaseDirectory, "MailLog.txt"));
+            var eventService = new EventService(eventRepo, participantRepo);
+            var participantService = new ParticipantService(participantRepo, eventRepo, mailService, eventService);
+            var financialService = new FinancialService(participantRepo, eventRepo, mailService, eventService);
+            var pollService = new PollService(pollRepo, eventRepo, mailService, eventService);
 
-            // הוספת שאלה לסקר
-            Console.WriteLine("-> Adding question to poll...");
-            var poll = pollRepo.GetById(1);
-            poll.Questions.Add(new PollQuestion { Id = 102, QuestionText = "באיזה שעה מועדפת?", Options = new List<string> { "בוקר", "צהריים", "ערב" } });
-            pollRepo.Update(poll);
+            eventService.OnAttendanceConfirmed += (eventId, participantId) =>
+            {
+                var ev = eventRepo.GetById(eventId);
+                var manager = managerRepo.GetById(ev.EventManagerId);
+                var participant = participantRepo.GetById(participantId);
+                if (manager != null && participant != null)
+                    mailService.SendEmail(manager.Email,
+                        $"אישור הגעה - {ev.Title}",
+                        $"המשתתף {participant.Name} אישר הגעה לאירוע.");
+            };
 
-            // שינוי תשובה בסקר
-            Console.WriteLine("-> Updating poll response...");
-            poll.Questions[0].ParticipantResponses[10] = "תל אביב";
-            pollRepo.Update(poll);
+            eventService.OnPaymentReceived += (eventId, participantId) =>
+            {
+                var ev = eventRepo.GetById(eventId);
+                var manager = managerRepo.GetById(ev.EventManagerId);
+                var participant = participantRepo.GetById(participantId);
+                if (manager != null && participant != null)
+                    mailService.SendEmail(manager.Email,
+                        $"תשלום התקבל - {ev.Title}",
+                        $"המשתתף {participant.Name} ביצע תשלום.");
+            };
 
-            // הדפסת כל המשתתפים
-            Console.WriteLine("\n=== All Participants ===");
-            foreach (var p in participantRepo.GetAll())
-                Console.WriteLine($"[{p.Id}] {p.Name} | {p.Email} | {p.PhoneNumber}");
+            eventService.OnPollCreated += (pollId) =>
+            {
+                var poll = pollRepo.GetById(pollId);
+                var ev = eventRepo.GetAll().FirstOrDefault(e => e.PollIds.Contains(pollId));
+                if (ev == null) return;
+                participantRepo.GetAll()
+                    .Where(p => ev.ParticipantIds.Contains(p.Id) &&
+                                p.MailingPreferences != MailingPreference.None)
+                    .ToList()
+                    .ForEach(p => mailService.SendEmail(p.Email,
+                        $"סקר חדש נוצר: {poll?.Name}",
+                        $"שלום {p.Name}, נוצר סקר חדש באירוע {ev.Title}. נא למלא."));
+            };
 
-            // הוספת קבלה עם קובץ
-            Console.WriteLine("\n-> Adding receipt...");
-            string testFile = Path.Combine(AppContext.BaseDirectory, "test_receipt.txt");
-            File.WriteAllText(testFile, "קבלה לדוגמה");
-            receiptRepo.AddReceipt(
-                new ReceiptDetails("REC-2026-002", 1500, DateTime.Now),
-                testFile
-            );
-            Console.WriteLine($"-> Receipt added. File copied to: {receiptsFolder}");
+            eventService.OnEventDetailsChanged += (eventId) =>
+            {
+                var ev = eventRepo.GetById(eventId);
+                participantRepo.GetAll()
+                    .Where(p => ev.ParticipantIds.Contains(p.Id) &&
+                                p.MailingPreferences != MailingPreference.None)
+                    .ToList()
+                    .ForEach(p => mailService.SendEmail(p.Email,
+                        $"עדכון פרטי אירוע: {ev.Title}",
+                        $"שלום {p.Name}, פרטי האירוע {ev.Title} עודכנו."));
+            };
+
+            Console.WriteLine("\n=== [מסך: אירוע] לחיצה על 'אשר הגעה' עבור משתתף 10 ===");
+            participantService.ConfirmAttendance(10, true);
+
+            Console.WriteLine("\n=== [מסך: ניהול] לחיצה על 'שלח תזכורות לאישור הגעה' ===");
+            participantService.SendPendingInvitations(1);
+
+            Console.WriteLine("\n=== [מסך: ניהול] לחיצה על 'אשר תשלום' עבור משתתף 10 ===");
+            financialService.RegisterPayment(10, 150);
+
+            Console.WriteLine("\n=== [מסך: ניהול] לחיצה על 'שלח תזכורות תשלום' ===");
+            financialService.SendPaymentReminders(1);
+
+            Console.WriteLine("\n=== [מסך: ניהול] לחיצה על 'הוסף חוב לספק 1' ===");
+            financialService.AddVendorDebt(1, 1, 500);
+
+            Console.WriteLine("\n=== [מסך: דוח פיננסי] הצגת סיכום מצב חשבון ===");
+            var summary = financialService.GetFinancialSummary(1);
+            Console.WriteLine($"הכנסות: {summary.TotalIncome} | הוצאות: {summary.TotalOutgoing} | מאזן: {summary.Balance}");
+            Console.WriteLine("משתתפים ששילמו:");
+            summary.PaidParticipants.ToList().ForEach(p => Console.WriteLine($"  - {p.Name}: {p.AmountContributed}"));
+
+            Console.WriteLine("\n=== [מסך: דוח] רשימת קבלות ממוינות ===");
+            financialService.GetAllReceiptsSorted(1).ToList()
+                .ForEach(r => Console.WriteLine($"  קבלה {r.ReceiptNumber}: {r.Amount}"));
+
+            Console.WriteLine("\n=== [מסך: ניהול] לחיצה על 'צור סקר חדש' ===");
+            var newPoll = pollService.CreatePoll(1, "סקר תאריך", new List<(string, List<string>)>
+            {
+                ("איזה תאריך מתאים?", new List<string> { "1/8", "15/8", "1/9" })
+            });
+            Console.WriteLine($"-> סקר נוצר: {newPoll.Name} (Id={newPoll.Id})");
+
+            Console.WriteLine("\n=== [מסך: משתתף] לחיצה על 'הצבע' בסקר ===");
+            pollService.SubmitVote(newPoll.Id, newPoll.Questions[0].Id, 10, "1/8");
+            pollService.SubmitVote(newPoll.Id, newPoll.Questions[0].Id, 11, "1/8");
+
+            Console.WriteLine("\n=== [מסך: תוצאות סקר] הצגת תוצאות ===");
+            pollService.GetPollResults(newPoll.Id).ToList().ForEach(r =>
+            {
+                Console.WriteLine($"שאלה: {r.QuestionText}");
+                r.Results.ToList().ForEach(o => Console.WriteLine($"  {o.Option}: {o.Votes} קולות ({o.Percentage}%)"));
+            });
 
             Console.WriteLine("\n=== Test Completed Successfully! ===");
         }

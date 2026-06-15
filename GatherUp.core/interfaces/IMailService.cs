@@ -6,8 +6,8 @@ using System.Threading.Tasks;
 
 namespace GatherUp.core.interfaces
 {
-    public interface IEntity
+    public interface IMailService
     {
-        int Id { get; }
+        void SendEmail(string to, string subject, string body);
     }
 }

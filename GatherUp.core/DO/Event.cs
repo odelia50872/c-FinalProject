@@ -15,7 +15,6 @@ namespace GatherUp.core.DO
             ParticipantIds = new List<int>();
             Vendors = new List<VendorAllocation>();
             PollIds = new List<int>();
-
         }
 
         [XmlAttribute]

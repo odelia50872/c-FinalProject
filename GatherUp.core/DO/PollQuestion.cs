@@ -12,6 +12,12 @@ namespace GatherUp.core.DO
     {
         public int ParticipantId { get; set; }
         public string Response { get; set; } = string.Empty;
+        public string Key { get; set; }
+
+        public int Count()
+        {
+            throw new NotImplementedException();
+        }
     }
 
     public class PollQuestion

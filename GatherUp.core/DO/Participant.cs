@@ -5,12 +5,13 @@ using System.Text;
 using System.Threading.Tasks;
 
 namespace GatherUp.core.DO;
+[Flags]
 public enum MailingPreference
 {
-    None,
-    Email,
-    Sms,
-    Both
+    None = 0,
+    AttendanceConfirmation = 1, 
+    PaymentConfirmation = 2,    
+    PollResponses = 4           
 }
 
 public class Participant : Person
