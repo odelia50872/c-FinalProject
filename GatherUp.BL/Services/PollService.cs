@@ -1,4 +1,5 @@
 using GatherUp.core.DO;
+using GatherUp.core.Exceptions;
 using GatherUp.core.interfaces;
 
 namespace GatherUp.BL.Services
@@ -7,24 +8,19 @@ namespace GatherUp.BL.Services
     {
         private readonly IRepository<Poll> _pollRepo;
         private readonly IRepository<Event> _eventRepo;
-        private readonly IMailService _mailService;
-        private readonly IEventService _eventService;
 
-        public PollService(
-            IRepository<Poll> pollRepo,
-            IRepository<Event> eventRepo,
-            IMailService mailService,
-            IEventService eventService)
+        public PollService(IRepository<Poll> pollRepo, IRepository<Event> eventRepo)
         {
             _pollRepo = pollRepo;
             _eventRepo = eventRepo;
-            _mailService = mailService;
-            _eventService = eventService;
         }
+
+        public event Action<int>? OnPollCreated;
+        public event Action<int, int>? OnPollAnswerSubmitted;
 
         public Poll CreatePoll(int eventId, string name, List<(string QuestionText, List<string> Options)> questions)
         {
-            var ev = _eventRepo.GetById(eventId) ?? throw new Exception("אירוע לא נמצא");
+            var ev = _eventRepo.GetById(eventId) ?? throw new NotFoundException("Event", eventId);
 
             var newId = _pollRepo.GetAll().Any() ? _pollRepo.GetAll().Max(p => p.Id) + 1 : 1;
             var poll = new Poll { Id = newId, Name = name };
@@ -40,15 +36,15 @@ namespace GatherUp.BL.Services
             ev.PollIds.Add(poll.Id);
             _eventRepo.Update(ev);
 
-            _eventService.RaisePollCreated(poll.Id);
+            OnPollCreated?.Invoke(poll.Id);
             return poll;
         }
 
         public void SubmitVote(int pollId, int questionId, int participantId, string answer)
         {
-            var poll = _pollRepo.GetById(pollId) ?? throw new Exception("סקר לא נמצא");
+            var poll = _pollRepo.GetById(pollId) ?? throw new NotFoundException("Poll", pollId);
             var question = poll.Questions.FirstOrDefault(q => q.Id == questionId)
-                ?? throw new Exception("שאלה לא נמצאה");
+                ?? throw new NotFoundException("PollQuestion", questionId);
 
             var existing = question.Responses.FirstOrDefault(r => r.ParticipantId == participantId);
             if (existing != null)
@@ -59,12 +55,12 @@ namespace GatherUp.BL.Services
 
             var ev = _eventRepo.GetAll().FirstOrDefault(e => e.PollIds.Contains(pollId));
             if (ev != null)
-                _eventService.RaisePollAnswerSubmitted(ev.Id, pollId);
+                OnPollAnswerSubmitted?.Invoke(ev.Id, pollId);
         }
 
         public IEnumerable<PollResultDTO> GetPollResults(int pollId)
         {
-            var poll = _pollRepo.GetById(pollId) ?? throw new Exception("סקר לא נמצא");
+            var poll = _pollRepo.GetById(pollId) ?? throw new NotFoundException("Poll", pollId);
 
             return poll.Questions.Select(q =>
             {

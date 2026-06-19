@@ -1,4 +1,5 @@
 using GatherUp.core.DO;
+using GatherUp.core.Exceptions;
 using GatherUp.core.interfaces;
 
 namespace GatherUp.BL.Services
@@ -14,64 +15,66 @@ namespace GatherUp.BL.Services
             _participantRepo = participantRepo;
         }
 
-        public event Action<int, int>? OnAttendanceConfirmed;
-        public event Action<int, int>? OnPaymentReceived;
-        public event Action<int, int>? OnPollAnswerSubmitted;
-        public event Action<int>? OnPollCreated;
         public event Action<int>? OnEventDetailsChanged;
-        public event Action<int, decimal>? OnBudgetChanged;
 
-        public void RaiseAttendanceConfirmed(int eventId, int participantId) =>
-            OnAttendanceConfirmed?.Invoke(eventId, participantId);
+        public Event GetEventById(int eventId) =>
+            _eventRepo.GetById(eventId) ?? throw new NotFoundException("Event", eventId);
 
-        public void RaisePaymentReceived(int eventId, int participantId) =>
-            OnPaymentReceived?.Invoke(eventId, participantId);
+        public bool IsManager(int eventId, int userId) =>
+            _eventRepo.GetById(eventId)?.EventManagerId == userId;
 
-        public void RaisePollAnswerSubmitted(int eventId, int pollId) =>
-            OnPollAnswerSubmitted?.Invoke(eventId, pollId);
+        public Event CreateEvent(string title, DateTime date, string location, int managerId, int hostId)
+        {
+            if (string.IsNullOrWhiteSpace(title))
+                throw new ValidationException("Event title cannot be empty.");
 
-        public void RaisePollCreated(int pollId) =>
-            OnPollCreated?.Invoke(pollId);
+            var newId = _eventRepo.GetAll().Any() ? _eventRepo.GetAll().Max(e => e.Id) + 1 : 1;
+            var ev = new Event
+            {
+                Id = newId,
+                Title = title,
+                Date = date,
+                Location = location,
+                EventManagerId = managerId,
+                EventHostId = hostId
+            };
+            _eventRepo.Add(ev);
+            return ev;
+        }
 
-        public void RaiseEventDetailsChanged(int eventId) =>
+        public void UpdateEvent(int eventId, string title, DateTime date, string location)
+        {
+            var ev = _eventRepo.GetById(eventId) ?? throw new NotFoundException("Event", eventId);
+            if (string.IsNullOrWhiteSpace(title))
+                throw new ValidationException("Event title cannot be empty.");
+
+            ev.Title = title;
+            ev.Date = date;
+            ev.Location = location;
+            _eventRepo.Update(ev);
             OnEventDetailsChanged?.Invoke(eventId);
+        }
+
+        public IEnumerable<Event> GetEventsByManager(int managerId) =>
+            _eventRepo.GetAll().Where(e => e.EventManagerId == managerId);
+
+        public IEnumerable<Event> GetEventsByHost(int hostId) =>
+            _eventRepo.GetAll().Where(e => e.EventHostId == hostId);
 
         public IEnumerable<Event> GetEventsByParticipant(int participantId) =>
             _eventRepo.GetAll().Where(e => e.ParticipantIds.Contains(participantId));
 
-        public IEnumerable<string> GetEventTitlesByParticipant(int participantId) =>
-            GetEventsByParticipant(participantId).Select(e => e.Title);
-
         public IEnumerable<Participant> GetEventParticipants(int eventId)
         {
-            var ev = _eventRepo.GetById(eventId);
-            if (ev == null) return Enumerable.Empty<Participant>();
+            var ev = _eventRepo.GetById(eventId) ?? throw new NotFoundException("Event", eventId);
             return _participantRepo.GetAll().Where(p => ev.ParticipantIds.Contains(p.Id));
-        }
-
-        public decimal GetTotalBudget(int eventId)
-        {
-            var ev = _eventRepo.GetById(eventId) ?? throw new Exception("אירוע לא נמצא");
-            return ev.Vendors.Sum(v => v.AmountOwed);
-        }
-
-        public void UpdateVendorAmount(int eventId, int vendorId, decimal newAmount)
-        {
-            var ev = _eventRepo.GetById(eventId);
-            var vendor = ev?.Vendors.FirstOrDefault(v => v.Id == vendorId);
-            if (vendor == null) return;
-
-            vendor.AmountOwed = newAmount;
-            _eventRepo.Update(ev!);
-            OnBudgetChanged?.Invoke(eventId, GetTotalBudget(eventId));
-            OnEventDetailsChanged?.Invoke(eventId);
         }
 
         public void AddParticipantToEvent(int eventId, int participantId)
         {
-            var ev = _eventRepo.GetById(eventId) ?? throw new Exception("האירוע לא קיים");
+            var ev = _eventRepo.GetById(eventId) ?? throw new NotFoundException("Event", eventId);
             if (ev.ParticipantIds.Contains(participantId))
-                throw new Exception("המשתתף כבר רשום לאירוע");
+                throw new ValidationException("Participant is already registered to this event.");
             ev.ParticipantIds.Add(participantId);
             _eventRepo.Update(ev);
         }

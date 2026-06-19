@@ -49,12 +49,12 @@ namespace GatherUp.Infrastructure.Repositories
         }
 
         public override void Add(VendorAllocation entity) =>
-            throw new InvalidOperationException("השתמש ב-AddReceipt במקום");
+            throw new InvalidOperationException("Use AddReceipt instead.");
 
         public override void Update(VendorAllocation entity) =>
-            throw new InvalidOperationException("לא ניתן לערוך קבלה לאחר היצירה");
+            throw new InvalidOperationException("Receipts cannot be edited after creation.");
 
         public override void Delete(int id) =>
-            throw new InvalidOperationException("לא ניתן למחוק קבלה לאחר היצירה");
+            throw new InvalidOperationException("Receipts cannot be deleted after creation.");
     }
 }

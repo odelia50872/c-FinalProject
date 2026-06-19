@@ -1,4 +1,5 @@
 using GatherUp.core.DO;
+using GatherUp.core.Exceptions;
 using GatherUp.core.interfaces;
 
 namespace GatherUp.BL.Services
@@ -8,25 +9,24 @@ namespace GatherUp.BL.Services
         private readonly IRepository<Participant> _participantRepo;
         private readonly IRepository<Event> _eventRepo;
         private readonly IMailService _mailService;
-        private readonly IEventService _eventService;
 
         public FinancialService(
             IRepository<Participant> participantRepo,
             IRepository<Event> eventRepo,
-            IMailService mailService,
-            IEventService eventService)
+            IMailService mailService)
         {
             _participantRepo = participantRepo;
             _eventRepo = eventRepo;
             _mailService = mailService;
-            _eventService = eventService;
         }
 
+        public event Action<int, int>? OnPaymentReceived;
+        public event Action<int, decimal>? OnBudgetChanged;
 
         public void RegisterPayment(int participantId, decimal amount)
         {
             var participant = _participantRepo.GetById(participantId)
-                ?? throw new Exception("משתתף לא נמצא");
+                ?? throw new NotFoundException("Participant", participantId);
 
             participant.HasPaid = true;
             participant.AmountContributed += amount;
@@ -34,30 +34,38 @@ namespace GatherUp.BL.Services
 
             var ev = _eventRepo.GetAll().FirstOrDefault(e => e.ParticipantIds.Contains(participantId));
             if (ev != null)
-                _eventService.RaisePaymentReceived(ev.Id, participantId);
+                OnPaymentReceived?.Invoke(ev.Id, participantId);
         }
 
-        public void AddVendorDebt(int eventId, int vendorId, decimal amount)
+        // Single method for both adding debt and updating vendor amount
+        public void SetVendorAmount(int eventId, int vendorId, decimal amount)
         {
-            var ev = _eventRepo.GetById(eventId) ?? throw new Exception("אירוע לא נמצא");
+            var ev = _eventRepo.GetById(eventId) ?? throw new NotFoundException("Event", eventId);
             var vendor = ev.Vendors.FirstOrDefault(v => v.Id == vendorId)
-                ?? throw new Exception("ספק לא נמצא");
+                ?? throw new NotFoundException("Vendor", vendorId);
 
-            vendor.AmountOwed += amount;
+            vendor.AmountOwed = amount;
             _eventRepo.Update(ev);
+            OnBudgetChanged?.Invoke(eventId, GetTotalBudget(eventId));
+        }
+
+        public decimal GetTotalBudget(int eventId)
+        {
+            var ev = _eventRepo.GetById(eventId) ?? throw new NotFoundException("Event", eventId);
+            return ev.Vendors.Sum(v => v.AmountOwed);
         }
 
         public void SendPaymentReminders(int eventId)
         {
-            var ev = _eventRepo.GetById(eventId) ?? throw new Exception("אירוע לא נמצא");
+            var ev = _eventRepo.GetById(eventId) ?? throw new NotFoundException("Event", eventId);
 
             _participantRepo.GetAll()
                 .Where(p => ev.ParticipantIds.Contains(p.Id) && !p.HasPaid)
                 .ToList()
                 .ForEach(p => _mailService.SendEmail(
                     p.Email,
-                    $"תזכורת: תשלום עבור אירוע {ev.Title}",
-                    $"שלום {p.Name},\nנא לשלם עבור השתתפותך באירוע {ev.Title}.\nפרטי חשבון: בנק 12, סניף 345, חשבון 678901."
+                    $"Payment Reminder - {ev.Title}",
+                    $"Hello {p.Name}, please complete your payment for {ev.Title}.\nBank: 12, Branch: 345, Account: 678901."
                 ));
         }
 
@@ -65,25 +73,14 @@ namespace GatherUp.BL.Services
                 IEnumerable<VendorAllocation> Vendors, decimal TotalOutgoing,
                 decimal Balance) GetFinancialSummary(int eventId)
         {
-            var ev = _eventRepo.GetById(eventId) ?? throw new Exception("אירוע לא נמצא");
-            var paidParticipants = GetPaidParticipants(eventId);
-            var totalIncome = CalculateTotalIncome(paidParticipants);
-            var totalOutgoing = CalculateTotalOutgoing(ev);
+            var ev = _eventRepo.GetById(eventId) ?? throw new NotFoundException("Event", eventId);
+            var paid = GetPaidParticipants(eventId);
+            var income = CalculateTotalIncome(paid);
+            var outgoing = CalculateTotalOutgoing(ev);
 
-            return (paidParticipants, totalIncome, ev.Vendors, totalOutgoing, totalIncome - totalOutgoing);
+            return (paid, income, ev.Vendors, outgoing, income - outgoing);
         }
 
-        public IEnumerable<(string ReceiptNumber, decimal Amount)> GetAllReceiptsSorted(int eventId)
-        {
-            var ev = _eventRepo.GetById(eventId) ?? throw new Exception("אירוע לא נמצא");
-
-            return ev.Vendors
-                .SelectMany(v => v.Receipts)
-                .OrderByDescending(r => r.Date)
-                .Select(r => (r.ReceiptNumber, r.Amount));
-        }
-
-=
         private IEnumerable<Participant> GetPaidParticipants(int eventId)
         {
             var ev = _eventRepo.GetById(eventId)!;
@@ -96,5 +93,14 @@ namespace GatherUp.BL.Services
 
         private decimal CalculateTotalOutgoing(Event ev) =>
             ev.Vendors.Sum(v => v.AmountOwed);
+
+        public IEnumerable<(string ReceiptNumber, decimal Amount)> GetAllReceiptsSorted(int eventId)
+        {
+            var ev = _eventRepo.GetById(eventId) ?? throw new NotFoundException("Event", eventId);
+            return ev.Vendors
+                .SelectMany(v => v.Receipts)
+                .OrderByDescending(r => r.Date)
+                .Select(r => (r.ReceiptNumber, r.Amount));
+        }
     }
 }

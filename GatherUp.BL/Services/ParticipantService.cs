@@ -1,4 +1,5 @@
 using GatherUp.core.DO;
+using GatherUp.core.Exceptions;
 using GatherUp.core.interfaces;
 
 namespace GatherUp.BL.Services
@@ -8,49 +9,58 @@ namespace GatherUp.BL.Services
         private readonly IRepository<Participant> _participantRepo;
         private readonly IRepository<Event> _eventRepo;
         private readonly IMailService _mailService;
-        private readonly IEventService _eventService;
 
         public ParticipantService(
             IRepository<Participant> participantRepo,
             IRepository<Event> eventRepo,
-            IMailService mailService,
-            IEventService eventService)
+            IMailService mailService)
         {
             _participantRepo = participantRepo;
             _eventRepo = eventRepo;
             _mailService = mailService;
-            _eventService = eventService;
         }
 
-        public void AddParticipant(Participant participant)
-        {
+        public event Action<int, int>? OnAttendanceConfirmed;
+
+        public void AddParticipant(Participant participant) =>
             _participantRepo.Add(participant);
-        }
+
+        public Participant GetParticipantById(int participantId) =>
+            _participantRepo.GetById(participantId) ?? throw new NotFoundException("Participant", participantId);
 
         public void ConfirmAttendance(int participantId, bool isAttending)
         {
             var participant = _participantRepo.GetById(participantId)
-                ?? throw new Exception("משתתף לא נמצא");
+                ?? throw new NotFoundException("Participant", participantId);
 
             participant.IsAttending = isAttending;
             _participantRepo.Update(participant);
 
             var ev = _eventRepo.GetAll().FirstOrDefault(e => e.ParticipantIds.Contains(participantId));
             if (ev != null)
-                _eventService.RaiseAttendanceConfirmed(ev.Id, participantId);
+                OnAttendanceConfirmed?.Invoke(ev.Id, participantId);
+        }
+
+        public void UpdateMailingPreference(int participantId, MailingPreference preference)
+        {
+            var participant = _participantRepo.GetById(participantId)
+                ?? throw new NotFoundException("Participant", participantId);
+
+            participant.MailingPreferences = preference;
+            _participantRepo.Update(participant);
         }
 
         public void SendPendingInvitations(int eventId)
         {
-            var ev = _eventRepo.GetById(eventId) ?? throw new Exception("אירוע לא נמצא");
+            var ev = _eventRepo.GetById(eventId) ?? throw new NotFoundException("Event", eventId);
 
             _participantRepo.GetAll()
                 .Where(p => ev.ParticipantIds.Contains(p.Id) && p.IsAttending == null)
                 .ToList()
                 .ForEach(p => _mailService.SendEmail(
                     p.Email,
-                    $"תזכורת: אישור הגעה לאירוע {ev.Title}",
-                    $"שלום {p.Name},\nנשמח לדעת האם תוכל/י להגיע לאירוע {ev.Title} בתאריך {ev.Date:dd/MM/yyyy}.\nנא לאשר הגעה בהקדם."
+                    $"Reminder: Please confirm attendance for {ev.Title}",
+                    $"Hello {p.Name}, please confirm your attendance for {ev.Title} on {ev.Date:dd/MM/yyyy}."
                 ));
         }
     }

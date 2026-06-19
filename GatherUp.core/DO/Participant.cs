@@ -1,18 +1,15 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿namespace GatherUp.core.DO;
 
-namespace GatherUp.core.DO;
 [Flags]
 public enum MailingPreference
 {
     None = 0,
-    AttendanceConfirmation = 1, 
-    PaymentConfirmation = 2,    
-    PollResponses = 4           
+    AttendanceConfirmation = 1,
+    PaymentConfirmation = 2,
+    PollResponses = 4
 }
+
+public enum UserRole { Participant, Manager, Host }
 
 public class Participant : Person
 {
@@ -20,6 +17,6 @@ public class Participant : Person
     public bool? IsAttending { get; set; }
     public bool HasPaid { get; set; }
     public decimal AmountContributed { get; set; }
-    public MailingPreference MailingPreferences { get; set; } 
-
+    public MailingPreference MailingPreferences { get; set; }
+    public UserRole Role { get; set; } = UserRole.Participant;
 }
