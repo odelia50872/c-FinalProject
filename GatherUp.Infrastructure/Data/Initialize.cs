@@ -10,60 +10,74 @@ namespace GatherUp.Infrastructure.Data
             IRepository<Participant> participantRepo,
             IRepository<Poll> pollRepo)
         {
-            var manager = new Participant
+            var odelia = new Participant
             {
                 Id = 1,
-                Name = "Noa Cohen",
-                Email = "noa.cohen@gmail.com",
-                PhoneNumber = "050-1234567",
-                Role = UserRole.Manager
+                Name = "Odelia Nakacshe",
+                Email = "odelia50872@gmail.com",
+                PhoneNumber = "0583250876",
+                Password = "210028221",
+                Role = UserRole.Manager,
+                MailingPreferences = MailingPreference.AttendanceConfirmation | MailingPreference.PaymentConfirmation | MailingPreference.PollResponses
             };
 
-            var host = new Participant
+            var host1 = new Participant
             {
                 Id = 2,
                 Name = "Michal Levi",
                 Email = "michal.levi@gmail.com",
                 PhoneNumber = "052-7654321",
+                Password = "123456789",
                 Role = UserRole.Host
             };
 
-            var p1 = new Participant
+            var avital = new Participant
             {
-                Id = 10,
-                Name = "Odelia Nakacshe",
-                Email = "odelia50872@gmail.com",
-                PhoneNumber = "0583250876",
-                IsAttending = true,
-                HasPaid = true,
-                AmountContributed = 150,
-                Role = UserRole.Participant
-            };
-
-            var p2 = new Participant
-            {
-                Id = 11,
+                Id = 3,
                 Name = "Avital Cohen",
                 Email = "avitalbc123@gmail.com",
                 PhoneNumber = "0583260632",
-                IsAttending = null,
-                HasPaid = false,
-                Role = UserRole.Participant
+                Password = "327584173",
+                Role = UserRole.Participant,
+                MailingPreferences = MailingPreference.AttendanceConfirmation | MailingPreference.PaymentConfirmation | MailingPreference.PollResponses
             };
 
-            participantRepo.Add(manager);
-            participantRepo.Add(host);
-            participantRepo.Add(p1);
-            participantRepo.Add(p2);
+            var noa = new Participant
+            {
+                Id = 4,
+                Name = "Noa Cohen",
+                Email = "noa.cohen@gmail.com",
+                PhoneNumber = "050-1234567",
+                Password = "111222333",
+                Role = UserRole.Manager,
+                MailingPreferences = MailingPreference.AttendanceConfirmation | MailingPreference.PaymentConfirmation | MailingPreference.PollResponses
+            };
 
-            var vendor = new VendorAllocation
+            var host2 = new Participant
+            {
+                Id = 5,
+                Name = "Dana Israeli",
+                Email = "dana@gmail.com",
+                PhoneNumber = "050-9999999",
+                Password = "444555666",
+                Role = UserRole.Host
+            };
+
+            participantRepo.Add(odelia);
+            participantRepo.Add(host1);
+            participantRepo.Add(avital);
+            participantRepo.Add(noa);
+            participantRepo.Add(host2);
+
+            // --- Event 1: Odelia is Manager ---
+            var vendor1 = new VendorAllocation
             {
                 Id = 1,
                 Name = "Happy Catering",
                 AmountOwed = 5000,
                 HasReceipt = true
             };
-            vendor.Receipts.Add(new ReceiptDetails("REC-2026-001", 2000, DateTime.Now));
+            vendor1.Receipts.Add(new ReceiptDetails("REC-2026-001", 2000, DateTime.Now));
 
             var poll1 = new Poll { Id = 1, Name = "Initial Preferences", Description = "Date and location poll" };
             poll1.Questions.Add(new PollQuestion
@@ -72,6 +86,37 @@ namespace GatherUp.Infrastructure.Data
                 QuestionText = "Which location do you prefer?",
                 Options = new List<string> { "Jerusalem", "Tel Aviv", "Haifa" }
             });
+            poll1.Questions[0].Responses.Add(new PollResponse { ParticipantId = odelia.Id, Response = "Jerusalem" });
+            poll1.Questions[0].Responses.Add(new PollResponse { ParticipantId = avital.Id, Response = "Tel Aviv" });
+            pollRepo.Add(poll1);
+
+            var event1 = new Event
+            {
+                Id = 1,
+                Title = "GatherUp Launch Hackathon",
+                Date = new DateTime(2026, 06, 15),
+                Location = "Jerusalem",
+                EventManagerId = odelia.Id,
+                EventHostId = host1.Id,
+                ParticipantIds = new List<int> { odelia.Id, avital.Id },
+                ParticipantData = new List<EventParticipantData>
+                {
+                    new EventParticipantData { ParticipantId = odelia.Id, IsAttending = true, HasPaid = true, AmountContributed = 150 },
+                    new EventParticipantData { ParticipantId = avital.Id, IsAttending = null, HasPaid = false }
+                },
+                Vendors = new List<VendorAllocation> { vendor1 },
+                PollIds = new List<int> { poll1.Id }
+            };
+            eventRepo.Add(event1);
+
+            // --- Event 2: Odelia is Participant, Noa is Manager ---
+            var vendor2 = new VendorAllocation
+            {
+                Id = 1,
+                Name = "Sound System Co.",
+                AmountOwed = 3000,
+                HasReceipt = false
+            };
 
             var poll2 = new Poll { Id = 2, Name = "Catering Poll", Description = "Food preferences" };
             poll2.Questions.Add(new PollQuestion
@@ -80,24 +125,29 @@ namespace GatherUp.Infrastructure.Data
                 QuestionText = "Which main course do you prefer?",
                 Options = new List<string> { "Meat", "Vegetarian", "Vegan" }
             });
-
-            pollRepo.Add(poll1);
+            poll2.Questions[0].Responses.Add(new PollResponse { ParticipantId = noa.Id, Response = "Meat" });
+            poll2.Questions[0].Responses.Add(new PollResponse { ParticipantId = odelia.Id, Response = "Vegetarian" });
             pollRepo.Add(poll2);
 
-            var newEvent = new Event
+            var event2 = new Event
             {
-                Id = 1,
-                Title = "GatherUp Launch Hackathon",
-                Date = new DateTime(2026, 06, 15),
-                Location = "Jerusalem",
-                EventManagerId = manager.Id,
-                EventHostId = host.Id,
-                ParticipantIds = new List<int> { p1.Id, p2.Id },
-                Vendors = new List<VendorAllocation> { vendor },
-                PollIds = new List<int> { poll1.Id, poll2.Id }
+                Id = 2,
+                Title = "End of Year Celebration",
+                Date = new DateTime(2026, 12, 31),
+                Location = "Tel Aviv",
+                EventManagerId = noa.Id,
+                EventHostId = host2.Id,
+                ParticipantIds = new List<int> { noa.Id, odelia.Id, avital.Id },
+                ParticipantData = new List<EventParticipantData>
+                {
+                    new EventParticipantData { ParticipantId = noa.Id, IsAttending = true, HasPaid = true, AmountContributed = 200 },
+                    new EventParticipantData { ParticipantId = odelia.Id, IsAttending = null, HasPaid = false },
+                    new EventParticipantData { ParticipantId = avital.Id, IsAttending = null, HasPaid = false }
+                },
+                Vendors = new List<VendorAllocation> { vendor2 },
+                PollIds = new List<int> { poll2.Id }
             };
-
-            eventRepo.Add(newEvent);
+            eventRepo.Add(event2);
         }
     }
 }

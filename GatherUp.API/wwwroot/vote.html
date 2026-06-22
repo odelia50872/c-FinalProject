@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>GatherUp - Vote</title>
+    <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<nav id="main-nav"></nav>
+<div class="container" style="max-width:700px">
+
+    <a id="back-link" href="#" style="color:var(--primary);font-size:13px;font-weight:500;display:inline-flex;align-items:center;gap:4px;margin-bottom:20px;text-decoration:none">
+        ← Back to Event
+    </a>
+
+    <div class="vote-header">
+        <h1>🗳️ Cast Your Vote</h1>
+        <p>Select one option per question, then submit below.</p>
+    </div>
+
+    <div id="vote-alert" class="alert"></div>
+    <div id="vote-content"><div id="loading">Loading poll...</div></div>
+
+    <div class="card" style="display:flex;gap:12px;justify-content:flex-end;margin-top:8px">
+        <a id="back-link2" href="#">
+            <button type="button" class="btn-secondary">Cancel</button>
+        </a>
+        <button class="btn-primary" onclick="submitVotes()" style="padding:12px 32px;font-size:15px">
+            ✓ Submit Votes
+        </button>
+    </div>
+</div>
+
+<script src="/app.js"></script>
+<script>
+    redirectIfNotLoggedIn();
+    buildNav('dashboard');
+
+    const params = new URLSearchParams(window.location.search);
+    const pollId = parseInt(params.get('pollId'));
+    const eventId = params.get('eventId');
+
+    document.getElementById('back-link').href = `/event.html?id=${eventId}`;
+    document.getElementById('back-link2').href = `/event.html?id=${eventId}`;
+
+    let pollQuestions = [];
+
+    async function loadPoll() {
+        const [data, pollRaw] = await Promise.all([
+            apiFetch(`/polls/${pollId}/results`),
+            apiFetch(`/polls/${pollId}/questions`)
+        ]);
+        pollQuestions = pollRaw;
+        document.getElementById('vote-content').innerHTML = data.map((q, qi) => `
+            <div class="vote-question">
+                <div class="vote-question-title">
+                    <span class="q-number">${qi + 1}</span>
+                    ${q.questionText}
+                </div>
+                ${q.results.map(o => `
+                    <label class="vote-option">
+                        <input type="radio" name="q-${qi}" value="${o.option}">
+                        <span>${o.option}</span>
+                    </label>
+                `).join('')}
+            </div>
+        `).join('');
+    }
+
+    async function submitVotes() {
+        const radios = document.querySelectorAll('input[type=radio]:checked');
+        if (radios.length === 0) { showAlert('vote-alert', 'Please select at least one answer.'); return; }
+        const btn = document.querySelector('.btn-primary[onclick]');
+        btn.disabled = true;
+        btn.textContent = 'Submitting...';
+        try {
+            for (const radio of radios) {
+                const qi = parseInt(radio.name.split('-')[1]);
+                const questionId = pollQuestions[qi]?.id;
+                if (questionId === undefined) continue;
+                await apiFetch(`/polls/${pollId}/vote`, 'POST', { questionId, answer: radio.value });
+            }
+            showAlert('vote-alert', '✓ Votes submitted successfully!', 'success');
+            setTimeout(() => window.location.href = `/event.html?id=${eventId}`, 1500);
+        } catch (e) {
+            showAlert('vote-alert', e.message);
+            btn.disabled = false;
+            btn.textContent = '✓ Submit Votes';
+        }
+    }
+
+    loadPoll();
+</script>
+</body>
+</html>

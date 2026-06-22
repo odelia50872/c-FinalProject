@@ -1,9 +1,3 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
 using System.Xml.Serialization;
 
 namespace GatherUp.core.DO
@@ -12,12 +6,6 @@ namespace GatherUp.core.DO
     {
         public int ParticipantId { get; set; }
         public string Response { get; set; } = string.Empty;
-        public string Key { get; set; }
-
-        public int Count()
-        {
-            throw new NotImplementedException();
-        }
     }
 
     public class PollQuestion
@@ -27,6 +15,7 @@ namespace GatherUp.core.DO
             Options = new List<string>();
             Responses = new List<PollResponse>();
         }
+
         public int Id { get; set; }
         public string QuestionText { get; set; } = string.Empty;
         public List<string> Options { get; set; }
@@ -36,10 +25,7 @@ namespace GatherUp.core.DO
         public Dictionary<int, string> ParticipantResponses
         {
             get => Responses.ToDictionary(r => r.ParticipantId, r => r.Response);
-            set
-            {
-                Responses = value.Select(kvp => new PollResponse { ParticipantId = kvp.Key, Response = kvp.Value }).ToList();
-            }
+            set => Responses = value.Select(kvp => new PollResponse { ParticipantId = kvp.Key, Response = kvp.Value }).ToList();
         }
     }
 }

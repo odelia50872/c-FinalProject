@@ -1,6 +1,7 @@
 using GatherUp.core.DO;
 using GatherUp.core.Exceptions;
 using GatherUp.core.interfaces;
+using GatherUp.Infrastructure.Services;
 
 namespace GatherUp.BL.Services
 {
@@ -18,7 +19,7 @@ namespace GatherUp.BL.Services
         public event Action<int>? OnEventDetailsChanged;
 
         public Event GetEventById(int eventId) =>
-            _eventRepo.GetById(eventId) ?? throw new NotFoundException("Event", eventId);
+            _eventRepo.GetById(eventId) ?? throw new EntityNotFoundException("Event", eventId);
 
         public bool IsManager(int eventId, int userId) =>
             _eventRepo.GetById(eventId)?.EventManagerId == userId;
@@ -26,7 +27,14 @@ namespace GatherUp.BL.Services
         public Event CreateEvent(string title, DateTime date, string location, int managerId, int hostId)
         {
             if (string.IsNullOrWhiteSpace(title))
-                throw new ValidationException("Event title cannot be empty.");
+                throw new InvalidEventDataException("Event title cannot be empty.");
+
+            var creator = _participantRepo.GetById(managerId);
+            if (creator != null && creator.Role == UserRole.Participant)
+            {
+                creator.Role = UserRole.Manager;
+                _participantRepo.Update(creator);
+            }
 
             var newId = _eventRepo.GetAll().Any() ? _eventRepo.GetAll().Max(e => e.Id) + 1 : 1;
             var ev = new Event
@@ -36,7 +44,12 @@ namespace GatherUp.BL.Services
                 Date = date,
                 Location = location,
                 EventManagerId = managerId,
-                EventHostId = hostId
+                EventHostId = hostId,
+                ParticipantIds = new List<int> { managerId },
+                ParticipantData = new List<EventParticipantData>
+                {
+                    new EventParticipantData { ParticipantId = managerId, IsAttending = true }
+                }
             };
             _eventRepo.Add(ev);
             return ev;
@@ -44,9 +57,9 @@ namespace GatherUp.BL.Services
 
         public void UpdateEvent(int eventId, string title, DateTime date, string location)
         {
-            var ev = _eventRepo.GetById(eventId) ?? throw new NotFoundException("Event", eventId);
+            var ev = _eventRepo.GetById(eventId) ?? throw new EntityNotFoundException("Event", eventId);
             if (string.IsNullOrWhiteSpace(title))
-                throw new ValidationException("Event title cannot be empty.");
+                throw new InvalidEventDataException("Event title cannot be empty.");
 
             ev.Title = title;
             ev.Date = date;
@@ -66,17 +79,55 @@ namespace GatherUp.BL.Services
 
         public IEnumerable<Participant> GetEventParticipants(int eventId)
         {
-            var ev = _eventRepo.GetById(eventId) ?? throw new NotFoundException("Event", eventId);
+            var ev = _eventRepo.GetById(eventId) ?? throw new EntityNotFoundException("Event", eventId);
             return _participantRepo.GetAll().Where(p => ev.ParticipantIds.Contains(p.Id));
         }
 
+        public IEnumerable<Participant> GetAllParticipants() =>
+            _participantRepo.GetAll();
+
+        public Event? GetEventByParticipantId(int participantId) =>
+            _eventRepo.GetAll().FirstOrDefault(e => e.ParticipantIds.Contains(participantId));
+
         public void AddParticipantToEvent(int eventId, int participantId)
         {
-            var ev = _eventRepo.GetById(eventId) ?? throw new NotFoundException("Event", eventId);
+            var ev = _eventRepo.GetById(eventId) ?? throw new EntityNotFoundException("Event", eventId);
             if (ev.ParticipantIds.Contains(participantId))
-                throw new ValidationException("Participant is already registered to this event.");
+                throw new InvalidEventDataException("Participant is already registered to this event.");
+            if (ev.EventHostId == participantId)
+                throw new InvalidEventDataException("The event host cannot be added as a participant.");
             ev.ParticipantIds.Add(participantId);
+            ev.ParticipantData.Add(new EventParticipantData { ParticipantId = participantId });
             _eventRepo.Update(ev);
+        }
+
+        public void SendHostInvitation(int eventId, IMailService mailService)
+        {
+            var ev = _eventRepo.GetById(eventId) ?? throw new EntityNotFoundException("Event", eventId);
+            var host = _participantRepo.GetById(ev.EventHostId) ?? throw new EntityNotFoundException("Host", ev.EventHostId);
+
+            var bodyContent =
+                $"<p>Hi <strong>{host.Name}</strong>,</p>" +
+                $"<p>Great news! You've been selected as the <strong>host</strong> for the following event. Your role is to provide the venue and welcome the guests.</p>" +
+                $"<div class=\"info-box\">" +
+                $"  <div class=\"info-row\"><span class=\"info-label\">Event</span><span>{ev.Title}</span></div>" +
+                $"  <div class=\"info-row\"><span class=\"info-label\">Date</span><span>{ev.Date:dddd, dd MMMM yyyy}</span></div>" +
+                $"  <div class=\"info-row\"><span class=\"info-label\">Location</span><span>{ev.Location}</span></div>" +
+                $"</div>" +
+                $"<p>Please make sure everything is ready before the event date. The event manager will be in touch with more details.</p>" +
+                $"<p>Thank you for hosting with <strong>GatherUp</strong>! \U0001f389</p>";
+
+            var body = EmailTemplates.Build(
+                "You're invited to host an event! \U0001f3e0",
+                $"Hello {host.Name}, you have been selected as the host for \"{ev.Title}\".",
+                bodyContent
+            );
+
+            mailService.SendEmail(
+                host.Email,
+                $"[GatherUp] You're invited to host: {ev.Title}",
+                body
+            );
         }
     }
 }

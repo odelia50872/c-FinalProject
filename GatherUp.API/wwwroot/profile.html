@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>GatherUp - Profile</title>
+    <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<nav id="main-nav"></nav>
+<div class="container">
+    <h1>My Profile</h1>
+    <div class="card">
+        <div id="profile-alert" class="alert"></div>
+        <div class="form-row"><label>Name</label><input type="text" id="p-name"></div>
+        <div class="form-row"><label>Email</label><input type="email" id="p-email" disabled></div>
+        <div class="form-row"><label>Phone Number</label><input type="text" id="p-phone"></div>
+        <div class="form-actions">
+            <button class="btn-primary" onclick="saveProfile()">Save Changes</button>
+        </div>
+    </div>
+</div>
+
+<script src="/app.js"></script>
+<script>
+    redirectIfNotLoggedIn();
+    buildNav('profile');
+
+    const user = getUser();
+
+    async function loadProfile() {
+        const data = await apiFetch(`/person/${user.id}`);
+        document.getElementById('p-name').value = data.name;
+        document.getElementById('p-email').value = data.email;
+        document.getElementById('p-phone').value = data.phoneNumber;
+    }
+
+    async function saveProfile() {
+        const name = document.getElementById('p-name').value;
+        const phone = document.getElementById('p-phone').value;
+        try {
+            const updated = await apiFetch(`/person/${user.id}`, 'PUT', { name, phone });
+            const stored = getUser();
+            stored.name = updated.name;
+            localStorage.setItem('user', JSON.stringify(stored));
+            buildNav('profile');
+            showAlert('profile-alert', 'Profile updated successfully!', 'success');
+        } catch (e) {
+            showAlert('profile-alert', e.message);
+        }
+    }
+
+    loadProfile();
+</script>
+</body>
+</html>

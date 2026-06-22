@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -28,7 +28,7 @@ namespace GatherUp.Infrastructure.XML
 
             using (StreamReader reader = new StreamReader(filePath))
             {
-                return (T)serializer.Deserialize(reader);
+                return (T)(serializer.Deserialize(reader) ?? new T());
             }
         }
     }

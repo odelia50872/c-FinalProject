@@ -1,21 +1,15 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
 namespace GatherUp.core.DO
 {
     public class ReceiptDetails
     {
-
         public ReceiptDetails() { }
 
-        public ReceiptDetails(string receiptNumber, decimal amount, DateTime date)
+        public ReceiptDetails(string receiptNumber, decimal amount, DateTime date, string filePath = "")
         {
-            ReceiptNumber = receiptNumber;
-            Amount = amount;
-            Date = date;
+            _receiptNumber = receiptNumber;
+            _amount = amount;
+            _date = date;
+            FilePath = filePath;
         }
 
         private string _receiptNumber = string.Empty;
@@ -38,8 +32,8 @@ namespace GatherUp.core.DO
             get => _date;
             set { if (_date == default) _date = value; }
         }
+
+        // Original file path — copied to receipts folder upon saving
+        public string FilePath { get; set; } = string.Empty;
     }
 }
-
-
-

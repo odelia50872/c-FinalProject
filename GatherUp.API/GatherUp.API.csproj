@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <StaticWebAssetsFingerprintingEnabled>false</StaticWebAssetsFingerprintingEnabled>
+    <CompressStaticWebAssets>false</CompressStaticWebAssets>
+    <EnableCompressionInSingleFilePublish>false</EnableCompressionInSingleFilePublish>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="9.0.0" />
+    <PackageReference Include="Swashbuckle.AspNetCore" Version="6.9.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\GatherUp.BL\GatherUp.BL.csproj" />
+    <ProjectReference Include="..\GatherUp.core\GatherUp.core.csproj" />
+    <ProjectReference Include="..\GatherUp.Infrastructure\GatherUp.Infrastructure.csproj" />
+  </ItemGroup>
+
+</Project>

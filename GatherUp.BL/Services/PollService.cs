@@ -20,7 +20,7 @@ namespace GatherUp.BL.Services
 
         public Poll CreatePoll(int eventId, string name, List<(string QuestionText, List<string> Options)> questions)
         {
-            var ev = _eventRepo.GetById(eventId) ?? throw new NotFoundException("Event", eventId);
+            var ev = _eventRepo.GetById(eventId) ?? throw new EntityNotFoundException("Event", eventId);
 
             var newId = _pollRepo.GetAll().Any() ? _pollRepo.GetAll().Max(p => p.Id) + 1 : 1;
             var poll = new Poll { Id = newId, Name = name };
@@ -42,9 +42,9 @@ namespace GatherUp.BL.Services
 
         public void SubmitVote(int pollId, int questionId, int participantId, string answer)
         {
-            var poll = _pollRepo.GetById(pollId) ?? throw new NotFoundException("Poll", pollId);
+            var poll = _pollRepo.GetById(pollId) ?? throw new EntityNotFoundException("Poll", pollId);
             var question = poll.Questions.FirstOrDefault(q => q.Id == questionId)
-                ?? throw new NotFoundException("PollQuestion", questionId);
+                ?? throw new EntityNotFoundException("PollQuestion", questionId);
 
             var existing = question.Responses.FirstOrDefault(r => r.ParticipantId == participantId);
             if (existing != null)
@@ -60,7 +60,7 @@ namespace GatherUp.BL.Services
 
         public IEnumerable<PollResultDTO> GetPollResults(int pollId)
         {
-            var poll = _pollRepo.GetById(pollId) ?? throw new NotFoundException("Poll", pollId);
+            var poll = _pollRepo.GetById(pollId) ?? throw new EntityNotFoundException("Poll", pollId);
 
             return poll.Questions.Select(q =>
             {
@@ -76,6 +76,12 @@ namespace GatherUp.BL.Services
                     })
                 };
             });
+        }
+
+        public IEnumerable<object> GetPollQuestions(int pollId)
+        {
+            var poll = _pollRepo.GetById(pollId) ?? throw new EntityNotFoundException("Poll", pollId);
+            return poll.Questions.Select(q => new { q.Id, q.QuestionText, q.Options } as object);
         }
     }
 }

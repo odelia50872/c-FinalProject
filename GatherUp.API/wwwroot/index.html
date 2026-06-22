@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GatherUp - Sign In</title>
+    <link rel="stylesheet" href="/style.css">
+    <style>
+        .auth-page {
+            min-height: 100vh;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+        }
+        .auth-left {
+            background: linear-gradient(145deg, #0f2a4a 0%, #2c85e5 60%, #55c8ff 100%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 48px;
+            position: relative;
+            overflow: hidden;
+        }
+        .auth-left::before {
+            content: '';
+            position: absolute;
+            width: 400px; height: 400px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.06);
+            top: -100px; left: -100px;
+        }
+        .auth-left::after {
+            content: '';
+            position: absolute;
+            width: 300px; height: 300px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.06);
+            bottom: -80px; right: -80px;
+        }
+        .auth-left-content { position: relative; z-index: 1; text-align: center; color: white; }
+        .auth-left-logo {
+            width: 80px; height: 80px;
+            background: rgba(255,255,255,0.15);
+            border-radius: 22px;
+            display: flex; align-items: center; justify-content: center;
+            margin: 0 auto 20px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+        .auth-left-logo img { width: 52px; height: 52px; object-fit: contain; }
+        .auth-left h1 { font-size: 32px; font-weight: 800; letter-spacing: -0.5px; margin-bottom: 12px; }
+        .auth-left p { font-size: 15px; opacity: 0.8; line-height: 1.6; max-width: 280px; margin: 0 auto; }
+        .auth-features { margin-top: 40px; display: flex; flex-direction: column; gap: 14px; text-align: left; }
+        .auth-feature {
+            display: flex; align-items: center; gap: 12px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 12px; padding: 12px 16px;
+            backdrop-filter: blur(4px);
+            border: 1px solid rgba(255,255,255,0.15);
+        }
+        .auth-feature-icon { font-size: 20px; flex-shrink: 0; }
+        .auth-feature span { font-size: 13px; opacity: 0.9; font-weight: 500; }
+
+        .auth-right {
+            background: #f8fafc;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 48px 40px;
+        }
+        .auth-form-box { width: 100%; max-width: 400px; }
+        .auth-form-box .card {
+            border-radius: 20px;
+            padding: 36px 40px;
+            box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+        }
+        .auth-form-box h2 { font-size: 22px; font-weight: 800; color: var(--dark); margin-bottom: 4px; text-align: left; }
+        .auth-subtitle { font-size: 13px; color: var(--muted); margin-bottom: 28px; }
+        .auth-form-box .form-row { margin-bottom: 16px; }
+        .auth-form-box input { margin-bottom: 0; }
+        .auth-switch { margin-top: 20px; font-size: 13px; text-align: center; color: var(--muted); }
+        .auth-switch a { color: var(--primary); font-weight: 600; text-decoration: none; }
+        .auth-switch a:hover { text-decoration: underline; }
+
+        @media (max-width: 768px) {
+            .auth-page { grid-template-columns: 1fr; }
+            .auth-left { display: none; }
+            .auth-right { padding: 24px 20px; }
+            .auth-form-box .card { padding: 28px 24px; }
+        }
+    </style>
+</head>
+<body>
+<div class="auth-page">
+
+    <!-- Left panel -->
+    <div class="auth-left">
+        <div class="auth-left-content">
+            <div class="auth-left-logo">
+                <img src="/gatherup-logo.png" alt="GatherUp">
+            </div>
+            <h1>GatherUp</h1>
+            <p>The smart way to plan, manage, and enjoy events together.</p>
+            <div class="auth-features">
+                <div class="auth-feature">
+                    <span class="auth-feature-icon">📅</span>
+                    <span>Create & manage events effortlessly</span>
+                </div>
+                <div class="auth-feature">
+                    <span class="auth-feature-icon">👥</span>
+                    <span>Track attendance & payments</span>
+                </div>
+                <div class="auth-feature">
+                    <span class="auth-feature-icon">🗳️</span>
+                    <span>Run polls & collect responses</span>
+                </div>
+                <div class="auth-feature">
+                    <span class="auth-feature-icon">✉️</span>
+                    <span>Automatic email notifications</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Right panel -->
+    <div class="auth-right">
+        <div class="auth-form-box">
+
+            <!-- Login -->
+            <div id="login-card">
+                <div class="card">
+                    <h2>Welcome back 👋</h2>
+                    <p class="auth-subtitle">Sign in to your GatherUp account</p>
+                    <div id="login-alert" class="alert"></div>
+                    <div class="form-row">
+                        <label>Email Address</label>
+                        <input type="email" id="login-email" placeholder="your@email.com"
+                               onkeydown="if(event.key==='Enter') doLogin()">
+                    </div>
+                    <div class="form-row">
+                        <label>Password (ID Number)</label>
+                        <div class="password-field">
+                            <input type="password" id="login-password" placeholder="Your 9-digit ID"
+                                   onkeydown="if(event.key==='Enter') doLogin()">
+                            <button type="button" class="password-toggle" onclick="togglePassword('login-password', this)" tabindex="-1"></button>
+                        </div>
+                    </div>
+                    <button class="btn-primary" onclick="doLogin()" style="width:100%;padding:12px;margin-top:4px;font-size:15px">
+                        Sign In →
+                    </button>
+                    <div class="auth-switch">
+                        Don't have an account? <a href="#" onclick="toggleForm()">Create one</a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Register -->
+            <div id="register-card" class="hidden">
+                <div class="card">
+                    <h2>Create Account ✨</h2>
+                    <p class="auth-subtitle">Join GatherUp and start organizing</p>
+                    <div id="register-alert" class="alert"></div>
+                    <div class="form-row">
+                        <label>Full Name</label>
+                        <input type="text" id="reg-name" placeholder="Your full name">
+                    </div>
+                    <div class="form-row">
+                        <label>Email Address</label>
+                        <input type="email" id="reg-email" placeholder="your@email.com">
+                    </div>
+                    <div class="form-row">
+                        <label>Phone Number</label>
+                        <input type="text" id="reg-phone" placeholder="050-1234567">
+                    </div>
+                    <div class="form-row">
+                        <label>Password (ID Number)</label>
+                        <div class="password-field">
+                            <input type="password" id="reg-password" placeholder="Your 9-digit ID number">
+                            <button type="button" class="password-toggle" onclick="togglePassword('reg-password', this)" tabindex="-1"></button>
+                        </div>
+                    </div>
+                    <button class="btn-primary" onclick="doRegister()" style="width:100%;padding:12px;margin-top:4px;font-size:15px">
+                        Create Account →
+                    </button>
+                    <div class="auth-switch">
+                        Already have an account? <a href="#" onclick="toggleForm()">Sign In</a>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<script src="/app.js"></script>
+<script>
+    const EYE_OPEN = `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>`;
+    const EYE_CLOSED = `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/></svg>`;
+
+    function togglePassword(inputId, btn) {
+        const input = document.getElementById(inputId);
+        const isText = input.type === 'text';
+        input.type = isText ? 'password' : 'text';
+        btn.innerHTML = isText ? EYE_OPEN : EYE_CLOSED;
+    }
+
+    // init icons
+    document.querySelectorAll('.password-toggle').forEach(btn => btn.innerHTML = EYE_OPEN);
+
+    if (isLoggedIn()) window.location.href = '/dashboard.html';
+
+    function toggleForm() {
+        document.getElementById('login-card').classList.toggle('hidden');
+        document.getElementById('register-card').classList.toggle('hidden');
+    }
+
+    async function doLogin() {
+        const email = document.getElementById('login-email').value.trim();
+        const password = document.getElementById('login-password').value;
+        if (!email || !password) { showAlert('login-alert', 'Please enter email and password.'); return; }
+        try {
+            const res = await apiFetch('/auth/login', 'POST', { email, password });
+            localStorage.setItem('token', res.token);
+            localStorage.setItem('user', JSON.stringify({ id: res.id, name: res.name, email: res.email, role: res.role }));
+            window.location.href = '/dashboard.html';
+        } catch (e) { showAlert('login-alert', e.message); }
+    }
+
+    async function doRegister() {
+        const name = document.getElementById('reg-name').value.trim();
+        const email = document.getElementById('reg-email').value.trim();
+        const phone = document.getElementById('reg-phone').value.trim();
+        const password = document.getElementById('reg-password').value;
+        if (!name || !email || !phone || !password) { showAlert('register-alert', 'Please fill in all fields.'); return; }
+        try {
+            await apiFetch('/auth/register', 'POST', { name, email, phone, password });
+            showAlert('register-alert', '✓ Account created! Please sign in.', 'success');
+            setTimeout(toggleForm, 1800);
+        } catch (e) { showAlert('register-alert', e.message); }
+    }
+</script>
+</body>
+</html>

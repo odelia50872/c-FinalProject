@@ -1,0 +1,7 @@
+<Project>
+  <PropertyGroup>
+    <CompressStaticWebAssets>false</CompressStaticWebAssets>
+    <StaticWebAssetsFingerprintingEnabled>false</StaticWebAssetsFingerprintingEnabled>
+    <ResolveStaticWebAssetsInputs>false</ResolveStaticWebAssetsInputs>
+  </PropertyGroup>
+</Project>

@@ -1,0 +1,668 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>GatherUp - Event</title>
+    <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<nav id="main-nav"></nav>
+<div class="container">
+    <div id="event-header" style="margin-bottom:20px">
+        <a href="/dashboard.html" style="color:#3498db;font-size:13px">← Back to My Events</a>
+        <div id="event-title-section"></div>
+    </div>
+
+    <div class="tabs" id="event-tabs"></div>
+    <div id="tab-content"></div>
+</div>
+
+<script src="/app.js"></script>
+<script>
+    redirectIfNotLoggedIn();
+
+    const params = new URLSearchParams(window.location.search);
+    const eventId = parseInt(params.get('id'));
+    const user = getUser();
+    let eventData = null;
+    let isManager = false;
+    let isHost = false;
+
+    async function init() {
+        eventData = await apiFetch(`/events/${eventId}`);
+        isManager = eventData.eventManagerId === user.id;
+        isHost = eventData.eventHostId === user.id;
+
+        // בנה נב עם role מותאם לאירוע
+        const contextRole = isManager ? 'Manager' : isHost ? 'Host' : 'Participant';
+        buildNavWithRole(contextRole);
+
+        document.getElementById('event-title-section').innerHTML = `
+            <h1 style="margin-top:8px">${eventData.title}</h1>
+            <p style="color:var(--muted);font-size:14px">${formatDate(eventData.date)} &bull; ${eventData.location}
+            ${isManager ? '<span class="badge badge-manager" style="margin-left:8px">Manager</span>' : isHost ? '<span class="badge badge-host" style="margin-left:8px">Host</span>' : '<span class="badge badge-participant" style="margin-left:8px">Participant</span>'}</p>
+        `;
+
+        let tabs;
+        if (isManager) tabs = ['Details', 'Participants', 'Financial', 'Vendors', 'Polls'];
+        else if (isHost) tabs = ['Details'];
+        else tabs = ['Details', 'Polls', 'Attendance', 'Settings'];
+
+        document.getElementById('event-tabs').innerHTML = tabs.map((t, i) =>
+            `<button class="tab-btn ${i===0?'active':''}" onclick="loadTab('${t.toLowerCase()}')">${t}</button>`
+        ).join('');
+
+        loadTab('details');
+    }
+
+    function buildNavWithRole(contextRole) {
+        const nav = document.getElementById('main-nav');
+        if (!nav) return;
+        nav.innerHTML = `
+            <a href="/dashboard.html" class="logo-text">
+                <img src="/gatherup-logo.png" alt="GatherUp" style="width:30px;height:30px;object-fit:contain;border-radius:6px">
+                GatherUp
+            </a>
+            <div style="display:flex;align-items:center;gap:4px">
+                <a href="/dashboard.html">My Events</a>
+                <a href="/profile.html">Profile</a>
+                <span class="nav-user-chip">${user.name} &bull; ${contextRole}</span>
+                <button onclick="logout()" class="nav-logout-btn">Sign out</button>
+            </div>
+        `;
+    }
+
+    async function loadTab(tab) {
+        document.querySelectorAll('.tab-btn').forEach(b =>
+            b.classList.toggle('active', b.textContent.toLowerCase() === tab));
+
+        const content = document.getElementById('tab-content');
+        content.innerHTML = '<div id="loading">Loading...</div>';
+
+        if (tab === 'details') renderDetails();
+        else if (tab === 'participants') renderParticipants();
+        else if (tab === 'financial') renderFinancial();
+        else if (tab === 'vendors') renderVendors();
+        else if (tab === 'polls') renderPolls();
+        else if (tab === 'attendance') renderAttendance();
+        else if (tab === 'settings') renderSettings();
+    }
+
+    // --- DETAILS ---
+    function renderDetails() {
+        const content = document.getElementById('tab-content');
+        const viewMode = isManager ? `
+            <div class="form-row"><label>Title</label><input type="text" id="d-title" value="${eventData.title}" disabled></div>
+            <div class="form-row"><label>Date</label><input type="date" id="d-date" value="${eventData.date?.split('T')[0]}" disabled></div>
+            <div class="form-row"><label>Location</label><input type="text" id="d-location" value="${eventData.location}" disabled></div>
+            <button class="btn-secondary" onclick="enableDetailsEdit()">✏️ Change Details</button>
+        ` : `
+            <div class="form-row"><label>Title</label><input type="text" value="${eventData.title}" disabled></div>
+            <div class="form-row"><label>Date</label><input type="date" value="${eventData.date?.split('T')[0]}" disabled></div>
+            <div class="form-row"><label>Location</label><input type="text" value="${eventData.location}" disabled></div>
+        `;
+        content.innerHTML = `
+            <div class="card">
+                <h2>Event Details</h2>
+                <div id="details-alert" class="alert"></div>
+                ${viewMode}
+            </div>
+        `;
+    }
+
+    function enableDetailsEdit() {
+        document.getElementById('d-title').disabled = false;
+        document.getElementById('d-date').disabled = false;
+        document.getElementById('d-location').disabled = false;
+        const btn = document.querySelector('#tab-content .btn-secondary');
+        btn.className = 'btn-primary';
+        btn.textContent = 'Save Changes';
+        btn.setAttribute('onclick', 'updateDetails()');
+    }
+
+    async function updateDetails() {
+        try {
+            await apiFetch(`/events/${eventId}`, 'PUT', {
+                title: document.getElementById('d-title').value,
+                date: document.getElementById('d-date').value,
+                location: document.getElementById('d-location').value
+            });
+            showAlert('details-alert', 'Event updated successfully!', 'success');
+            eventData = await apiFetch(`/events/${eventId}`);
+            setTimeout(() => renderDetails(), 1000);
+        } catch (e) { showAlert('details-alert', e.message); }
+    }
+
+    // --- PARTICIPANTS ---
+    async function renderParticipants() {
+        const [participants, allUsers] = await Promise.all([
+            apiFetch(`/events/${eventId}/participants`),
+            apiFetch(`/events/all-users`)
+        ]);
+        const host = allUsers.find(u => u.id === eventData.eventHostId);
+        const content = document.getElementById('tab-content');
+        content.innerHTML = `
+            <div class="card">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+                    <h2>Participants (${participants.length})</h2>
+                    <div>
+                        <button class="btn-secondary btn-sm" onclick="sendInvitations()">Send Reminders</button>
+                        <button class="btn-success btn-sm" style="margin-left:8px" onclick="showAddParticipant()">+ Add</button>
+                    </div>
+                </div>
+                <div id="participants-alert" class="alert"></div>
+                ${host ? `
+                <div class="host-banner">
+                    <div class="host-banner-avatar">${host.name.charAt(0).toUpperCase()}</div>
+                    <div class="host-banner-info">
+                        <div class="host-banner-label">🏠 Event Host</div>
+                        <div class="host-banner-name">${host.name}</div>
+                        <div class="host-banner-sub">${host.email}</div>
+                    </div>
+                    <div class="host-banner-actions">
+                        <div class="host-banner-badge">Host</div>
+                        <button class="host-banner-btn" onclick="sendHostInvitation()">✉️ Send Invitation</button>
+                    </div>
+                </div>` : ''}
+                <div id="add-participant-form" class="hidden" style="margin-bottom:14px">
+                    <div style="display:flex;gap:8px;margin-bottom:6px">
+                        <input type="text" id="add-p-search" placeholder="Search by name or email..." style="margin:0;flex:1" oninput="searchParticipant(this.value)">
+                    </div>
+                    <div id="participant-results" style="border:1px solid #ddd;border-radius:6px;display:none;max-height:150px;overflow-y:auto;background:white;margin-bottom:6px"></div>
+                    <input type="hidden" id="add-p-id">
+                    <small id="participant-selected" style="color:#27ae60;font-size:12px"></small>
+                    <div style="margin-top:8px">
+                        <button class="btn-primary btn-sm" onclick="addParticipant()">Add Selected</button>
+                    </div>
+                </div>
+                <table>
+                    <tr><th>Name</th><th>Email</th><th>Attendance</th><th>Paid</th><th>Amount</th></tr>
+                    ${participants.map(p => `
+                        <tr>
+                            <td>${p.name}</td>
+                            <td>${p.email}</td>
+                            <td class="${p.isAttending === true ? 'tag-confirmed' : p.isAttending === false ? 'tag-declined' : 'tag-pending'}">
+                                ${p.isAttending === true ? '✓ Confirmed' : p.isAttending === false ? '✗ Declined' : '? Pending'}
+                            </td>
+                            <td class="${p.hasPaid ? 'tag-paid' : 'tag-unpaid'}">${p.hasPaid ? 'Paid' : 'Unpaid'}</td>
+                            <td>₪${p.amountContributed}</td>
+                        </tr>
+                    `).join('')}
+                </table>
+            </div>
+        `;
+    }
+
+    async function sendHostInvitation() {
+        try {
+            await apiFetch(`/events/${eventId}/send-host-invitation`, 'POST');
+            showAlert('participants-alert', 'Host invitation sent!', 'success');
+        } catch (e) { showAlert('participants-alert', e.message); }
+    }
+
+    function showAddParticipant() {
+        const f = document.getElementById('add-participant-form');
+        f.classList.toggle('hidden');
+        f.style.display = f.classList.contains('hidden') ? 'none' : 'flex';
+    }
+
+    let allSystemParticipants = [];
+
+    async function searchParticipant(query) {
+        const resultsEl = document.getElementById('participant-results');
+        if (query.length < 2) { resultsEl.style.display = 'none'; return; }
+
+        if (allSystemParticipants.length === 0) {
+            allSystemParticipants = await apiFetch(`/events/${eventId}/participants/all`);
+        }
+
+        const q = query.toLowerCase();
+        const filtered = allSystemParticipants.filter(p =>
+            p.name.toLowerCase().includes(q) || p.email.toLowerCase().includes(q)
+        );
+
+        if (filtered.length === 0) {
+            resultsEl.innerHTML = '<div style="padding:10px;color:#999;font-size:13px">No participants found</div>';
+            resultsEl.style.display = 'block';
+            return;
+        }
+
+        resultsEl.innerHTML = filtered.map(p => `
+            <div onclick="selectParticipant(${p.id}, '${p.name}')"
+                 style="padding:10px;cursor:pointer;font-size:13px;border-bottom:1px solid #f0f0f0"
+                 onmouseover="this.style.background='#f0f7ff'" onmouseout="this.style.background='white'">
+                ${p.name} <span style="color:#999;font-size:12px">${p.email}</span>
+            </div>
+        `).join('');
+        resultsEl.style.display = 'block';
+    }
+
+    function selectParticipant(id, name) {
+        document.getElementById('add-p-id').value = id;
+        document.getElementById('add-p-search').value = name;
+        document.getElementById('participant-selected').textContent = `✓ Selected: ${name}`;
+        document.getElementById('participant-results').style.display = 'none';
+    }
+
+    async function addParticipant() {
+        const pid = document.getElementById('add-p-id').value;
+        if (!pid) { showAlert('participants-alert', 'Please select a participant first.'); return; }
+        try {
+            await apiFetch(`/events/${eventId}/participants/${pid}`, 'POST');
+            showAlert('participants-alert', 'Participant added!', 'success');
+            allSystemParticipants = [];
+            renderParticipants();
+        } catch (e) { showAlert('participants-alert', e.message); }
+    }
+
+    async function sendInvitations() {
+        try {
+            await apiFetch(`/participants/events/${eventId}/send-invitations`, 'POST');
+            showAlert('participants-alert', 'Reminders sent! (logged to MailLog.txt on server)', 'success');
+        } catch (e) { showAlert('participants-alert', e.message); }
+    }
+
+    // --- FINANCIAL ---
+    async function renderFinancial() {
+        const [summary, receipts, participants] = await Promise.all([
+            apiFetch(`/financial/events/${eventId}/summary`),
+            apiFetch(`/financial/events/${eventId}/receipts`),
+            apiFetch(`/events/${eventId}/participants`)
+        ]);
+        const content = document.getElementById('tab-content');
+        const balanceClass = summary.balance >= 0 ? 'positive' : 'negative';
+        const receiptRows = !receipts || receipts.length === 0
+            ? '<tr><td colspan="2" style="color:#999;text-align:center">No receipts yet. Add from Vendors tab.</td></tr>'
+            : receipts.map(r => `<tr><td>${r.receiptNumber || '—'}</td><td>₪${r.amount ?? 0}</td></tr>`).join('');
+        const unpaidOptions = participants
+            .filter(p => !p.hasPaid)
+            .map(p => `<option value="${p.id}">${p.name}</option>`).join('');
+        content.innerHTML = `
+            <div class="card">
+                <h2>Financial Summary</h2>
+                <div id="fin-alert" class="alert"></div>
+                <div class="summary-box">
+                    <div class="summary-item"><div class="value positive">₪${summary.totalIncome}</div><div class="label">Total Income</div></div>
+                    <div class="summary-item"><div class="value" style="color:var(--primary)">₪${summary.totalOutgoing}</div><div class="label">Total Outgoing</div></div>
+                    <div class="summary-item"><div class="value ${balanceClass}">₪${summary.balance}</div><div class="label">Balance</div></div>
+                </div>
+                <div style="margin-bottom:16px">
+                    <button class="btn-secondary btn-sm" onclick="sendPaymentReminders()">Send Payment Reminders</button>
+                </div>
+                <h2>Register Payment</h2>
+                <div style="display:flex;gap:8px;margin-bottom:20px">
+                    <select id="pay-pid" style="margin:0;flex:1">
+                        <option value="">-- Select unpaid participant --</option>
+                        ${unpaidOptions || '<option disabled>All participants have paid</option>'}
+                    </select>
+                    <input type="number" id="pay-amount" placeholder="Amount ₪" style="margin:0;width:120px">
+                    <button class="btn-success btn-sm" onclick="registerPayment()">Confirm</button>
+                </div>
+                <h2>Receipts <span style="font-size:12px;color:#888;font-weight:400">(add via Vendors tab → Add Receipt)</span></h2>
+                <table><tr><th>Receipt Number</th><th>Amount</th></tr>${receiptRows}</table>
+            </div>
+        `;
+    }
+
+    async function registerPayment() {
+        const pid = document.getElementById('pay-pid').value;
+        const amount = parseFloat(document.getElementById('pay-amount').value);
+        if (!pid) { showAlert('fin-alert', 'Please select a participant.'); return; }
+        if (!amount || amount <= 0) { showAlert('fin-alert', 'Please enter a valid amount.'); return; }
+        const btn = document.querySelector('#tab-content .btn-success.btn-sm');
+        if (btn) { btn.disabled = true; btn.textContent = 'Saving...'; }
+        try {
+            await apiFetch(`/financial/participants/${pid}/payment`, 'POST', { amount });
+            await renderFinancial();
+            showAlert('fin-alert', `✓ Payment of ₪${amount} registered successfully!`, 'success');
+        } catch (e) {
+            showAlert('fin-alert', e.message);
+            if (btn) { btn.disabled = false; btn.textContent = 'Confirm'; }
+        }
+    }
+
+    async function sendPaymentReminders() {
+        try {
+            const res = await apiFetch(`/financial/events/${eventId}/send-payment-reminders`, 'POST');
+            showAlert('fin-alert', res.message, res.count === 0 ? 'success' : 'success');
+        } catch (e) { showAlert('fin-alert', e.message); }
+    }
+
+    // --- VENDORS ---
+    async function renderVendors() {
+        const vendors = await apiFetch(`/vendors/events/${eventId}`);
+        const content = document.getElementById('tab-content');
+        content.innerHTML = `
+            <div class="card">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+                    <h2>Vendors</h2>
+                    <button class="btn-success btn-sm" onclick="toggleAddVendor()">+ Add Vendor</button>
+                </div>
+                <div id="vendor-alert" class="alert"></div>
+                <div id="add-vendor-form" class="hidden" style="margin-bottom:16px">
+                    <div class="grid-2">
+                        <div><label>Name</label><input type="text" id="v-name"></div>
+                        <div><label>Amount Owed ₪</label><input type="number" id="v-amount"></div>
+                    </div>
+                    <button class="btn-primary btn-sm" onclick="addVendor()">Add</button>
+                </div>
+                <table>
+                    <tr><th>Name</th><th>Amount Owed</th><th>Has Receipt</th><th>Actions</th></tr>
+                    ${vendors.map(v => `
+                        <tr>
+                            <td>${v.name}</td>
+                            <td>₪${v.amountOwed}</td>
+                            <td>${v.hasReceipt ? '✓' : '—'}</td>
+                            <td>
+                                <button class="btn-secondary btn-sm" onclick="showSetAmount(${v.id})">Set Amount</button>
+                                <button class="btn-primary btn-sm" style="margin-left:4px" onclick="showAddReceipt(${v.id})">Add Receipt</button>
+                            </td>
+                        </tr>
+                        <tr id="amount-form-${v.id}" class="hidden">
+                            <td colspan="4" style="background:#f8f9fa;padding:10px">
+                                <input type="number" id="amt-${v.id}" placeholder="New amount" style="width:140px;display:inline-block;margin:0 8px 0 0">
+                                <button class="btn-primary btn-sm" onclick="setAmount(${v.id})">Save</button>
+                            </td>
+                        </tr>
+                        <tr id="receipt-form-${v.id}" class="hidden">
+                            <td colspan="4" style="background:#f8f9fa;padding:10px">
+                                <small style="color:#888;display:block;margin-bottom:6px">Receipt number will be generated automatically</small>
+                                <input type="number" id="ramt-${v.id}" placeholder="Amount" style="width:100px;display:inline-block;margin:0 6px 0 0">
+                                <input type="date" id="rdate-${v.id}" style="width:140px;display:inline-block;margin:0 6px 0 0">
+                                <button class="btn-primary btn-sm" onclick="addReceipt(${v.id})">Add</button>
+                            </td>
+                        </tr>
+                    `).join('')}
+                </table>
+            </div>
+        `;
+    }
+
+    function toggleAddVendor() {
+        const f = document.getElementById('add-vendor-form');
+        f.classList.toggle('hidden');
+    }
+
+    async function addVendor() {
+        try {
+            await apiFetch(`/vendors/events/${eventId}`, 'POST', {
+                name: document.getElementById('v-name').value,
+                amountOwed: parseFloat(document.getElementById('v-amount').value)
+            });
+            showAlert('vendor-alert', 'Vendor added!', 'success');
+            renderVendors();
+        } catch (e) { showAlert('vendor-alert', e.message); }
+    }
+
+    function showSetAmount(vid) {
+        document.getElementById(`amount-form-${vid}`).classList.toggle('hidden');
+    }
+
+    async function setAmount(vid) {
+        try {
+            await apiFetch(`/financial/events/${eventId}/vendors/${vid}/amount`, 'PUT', {
+                amount: parseFloat(document.getElementById(`amt-${vid}`).value)
+            });
+            renderVendors();
+        } catch (e) { showAlert('vendor-alert', e.message); }
+    }
+
+    function showAddReceipt(vid) {
+        document.getElementById(`receipt-form-${vid}`).classList.toggle('hidden');
+    }
+
+    async function addReceipt(vid) {
+        const amount = parseFloat(document.getElementById(`ramt-${vid}`).value);
+        const date = document.getElementById(`rdate-${vid}`).value;
+        if (!amount || amount <= 0) { showAlert('vendor-alert', 'Please enter a valid amount.'); return; }
+        if (!date) { showAlert('vendor-alert', 'Please select a date.'); return; }
+        try {
+            await apiFetch(`/vendors/events/${eventId}/${vid}/receipts`, 'POST', { amount, date });
+            showAlert('vendor-alert', 'Receipt added!', 'success');
+            renderVendors();
+        } catch (e) { showAlert('vendor-alert', e.message); }
+    }
+
+    // --- POLLS ---
+    async function renderPolls() {
+        const event = await apiFetch(`/events/${eventId}`);
+        const content = document.getElementById('tab-content');
+
+        const pollResults = await Promise.all(
+            (event.pollIds || []).map(id => apiFetch(`/polls/${id}/results`).then(r => ({ id, r })))
+        );
+        let pollsHtml = pollResults.map(({ id, r }) => renderPollCard(id, r, null)).join('');
+
+        content.innerHTML = `
+            <div id="polls-alert" class="alert"></div>
+            ${isManager ? `
+            <div class="card">
+                <h2>Create New Poll</h2>
+                <div class="form-row"><label>Poll Name</label><input type="text" id="poll-name"></div>
+                <div id="questions-container">
+                    <div class="question-block" data-index="0">
+                        <label>Question 1</label>
+                        <input type="text" class="q-text" placeholder="Question text" style="margin-bottom:6px">
+                        <div class="q-options-list" style="margin-bottom:4px">
+                            <input type="text" class="q-option-item" placeholder="Option 1" style="margin-bottom:4px">
+                            <input type="text" class="q-option-item" placeholder="Option 2" style="margin-bottom:4px">
+                        </div>
+                        <button class="btn-secondary btn-sm" style="margin-bottom:8px" onclick="addOption(this)">+ Add Option</button>
+                    </div>
+                </div>
+                <div class="form-actions">
+                    <button class="btn-secondary btn-sm" onclick="addQuestion()">+ Add Question</button>
+                    <button class="btn-primary" onclick="createPoll()">Create Poll</button>
+                </div>
+            </div>` : ''}
+            ${pollsHtml || '<div class="card"><p style="color:#999;text-align:center">No polls yet.</p></div>'}
+        `;
+    }
+
+    function renderPollCard(pollId, results, pollName) {
+        return `
+            <div class="card">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+                    <h2>${pollName || ('Poll #' + pollId)}</h2>
+                    ${!isManager ? `<button class="btn-primary btn-sm" onclick="openVote(${pollId})">Vote</button>` : ''}
+                </div>
+                ${results.map(r => `
+                    <div style="margin-bottom:16px">
+                        <strong style="font-size:14px">${r.questionText}</strong>
+                        ${r.results.map(o => `
+                            <div style="margin-top:6px">
+                                <div style="display:flex;justify-content:space-between;font-size:13px">
+                                    <span>${o.option}</span><span>${o.votes} votes (${o.percentage}%)</span>
+                                </div>
+                                <div class="poll-bar"><div class="poll-bar-fill" style="width:${o.percentage}%"></div></div>
+                            </div>
+                        `).join('')}
+                    </div>
+                `).join('')}
+            </div>
+        `;
+    }
+
+    let questionCount = 1;
+    function addQuestion() {
+        const c = document.getElementById('questions-container');
+        const div = document.createElement('div');
+        div.className = 'question-block';
+        div.innerHTML = `
+            <label>Question ${++questionCount}</label>
+            <input type="text" class="q-text" placeholder="Question text" style="margin-bottom:6px">
+            <div class="q-options-list" style="margin-bottom:4px">
+                <input type="text" class="q-option-item" placeholder="Option 1" style="margin-bottom:4px">
+                <input type="text" class="q-option-item" placeholder="Option 2" style="margin-bottom:4px">
+            </div>
+            <button class="btn-secondary btn-sm" style="margin-bottom:8px" onclick="addOption(this)">+ Add Option</button>
+        `;
+        c.appendChild(div);
+    }
+
+    function addOption(btn) {
+        const list = btn.previousElementSibling;
+        const count = list.querySelectorAll('.q-option-item').length + 1;
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.className = 'q-option-item';
+        input.placeholder = `Option ${count}`;
+        input.style.marginBottom = '4px';
+        list.appendChild(input);
+    }
+
+    async function createPoll() {
+        const name = document.getElementById('poll-name').value;
+        const blocks = document.querySelectorAll('.question-block');
+        const questions = Array.from(blocks).map(b => ({
+            questionText: b.querySelector('.q-text').value,
+            options: Array.from(b.querySelectorAll('.q-option-item'))
+                .map(i => i.value.trim()).filter(Boolean)
+        }));
+        try {
+            await apiFetch(`/polls/events/${eventId}`, 'POST', { name, questions });
+            showAlert('polls-alert', 'Poll created!', 'success');
+            renderPolls();
+        } catch (e) { showAlert('polls-alert', e.message); }
+    }
+
+    function openVote(pollId) {
+        window.location.href = `/vote.html?pollId=${pollId}&eventId=${eventId}`;
+    }
+
+    // --- ATTENDANCE (participant view) ---
+    async function renderAttendance() {
+        const content = document.getElementById('tab-content');
+        content.innerHTML = '<div id="loading">Loading...</div>';
+        const status = await apiFetch(`/participants/${user.id}/event/${eventId}/status`);
+        const attending = status.isAttending;
+
+        let statusHtml = '';
+        if (attending === true) {
+            statusHtml = `
+                <div class="status-confirmed">
+                    <span style="font-size:20px">✓</span>
+                    <div>
+                        <div>You have confirmed your attendance.</div>
+                        <div style="font-size:12px;font-weight:400;margin-top:2px;opacity:0.8">Changed your mind?</div>
+                    </div>
+                </div>
+                <button class="btn-secondary btn-sm" onclick="changeAttendance()">↩ Change Response</button>`;
+        } else if (attending === false) {
+            statusHtml = `
+                <div class="status-declined">
+                    <span style="font-size:20px">✗</span>
+                    <div>
+                        <div>You have declined this event.</div>
+                        <div style="font-size:12px;font-weight:400;margin-top:2px;opacity:0.8">Changed your mind?</div>
+                    </div>
+                </div>
+                <button class="btn-secondary btn-sm" onclick="changeAttendance()">↩ Change Response</button>`;
+        } else {
+            statusHtml = `
+                <p style="color:var(--muted);margin-bottom:20px">Are you attending <strong>${eventData.title}</strong> on ${formatDate(eventData.date)} at ${eventData.location}?</p>
+                <div class="form-actions" id="attend-btns">
+                    <button class="btn-success" onclick="confirmAttend(true, this)">✓ Yes, I'm attending</button>
+                    <button class="btn-danger" onclick="confirmAttend(false, this)">✗ No, I can't attend</button>
+                </div>`;
+        }
+
+        content.innerHTML = `
+            <div class="card">
+                <h2>Your Attendance</h2>
+                <div id="attend-alert" class="alert"></div>
+                ${statusHtml}
+            </div>
+        `;
+    }
+
+    function changeAttendance() {
+        document.querySelector('#tab-content .card').innerHTML = `
+            <h2>Update Your Attendance</h2>
+            <div id="attend-alert" class="alert"></div>
+            <p style="color:var(--muted);margin-bottom:20px">Are you attending <strong>${eventData.title}</strong>?</p>
+            <div class="form-actions" id="attend-btns">
+                <button class="btn-success" onclick="confirmAttend(true, this)">✓ Yes, I'm attending</button>
+                <button class="btn-danger" onclick="confirmAttend(false, this)">✗ No, I can't attend</button>
+            </div>
+        `;
+    }
+
+    async function confirmAttend(isAttending, clickedBtn) {
+        // נטרל את שני הכפתורים מיד למניעת לחיצות כפולות
+        document.querySelectorAll('#attend-btns button').forEach(b => {
+            b.disabled = true;
+            b.style.opacity = '0.6';
+        });
+        if (clickedBtn) { clickedBtn.textContent = 'Saving...'; }
+        try {
+            await apiFetch(`/participants/${user.id}/confirm-attendance`, 'POST', { isAttending });
+            showAlert('attend-alert', isAttending ? '✓ Attendance confirmed!' : 'Declined successfully.', 'success');
+            setTimeout(() => renderAttendance(), 1200);
+        } catch (e) {
+            showAlert('attend-alert', e.message);
+            // שחרר כפתורים אם נכשל
+            document.querySelectorAll('#attend-btns button').forEach(b => {
+                b.disabled = false;
+                b.style.opacity = '1';
+            });
+            if (clickedBtn) clickedBtn.textContent = isAttending ? '✓ Yes, I\'m attending' : '✗ No, I can\'t attend';
+        }
+    }
+
+    // --- SETTINGS (mailing preferences) ---
+    async function renderSettings() {
+        const content = document.getElementById('tab-content');
+        content.innerHTML = '<div id="loading">Loading...</div>';
+        const me = await apiFetch(`/participants/${user.id}`);
+        const pref = me.mailingPreferences ?? 7;
+        content.innerHTML = `
+            <div class="card">
+                <h2>Notification Preferences</h2>
+                <div id="settings-alert" class="alert"></div>
+                <p style="color:#666;margin-bottom:16px">Choose which emails you want to receive (all enabled by default):</p>
+                <div class="form-row" style="display:flex;align-items:center;gap:10px">
+                    <input type="checkbox" id="pref-attendance" style="width:auto;margin:0" ${pref & 1 ? 'checked' : ''} disabled>
+                    <label style="margin:0">Attendance confirmation updates</label>
+                </div>
+                <div class="form-row" style="display:flex;align-items:center;gap:10px">
+                    <input type="checkbox" id="pref-payment" style="width:auto;margin:0" ${pref & 2 ? 'checked' : ''} disabled>
+                    <label style="margin:0">Payment confirmation updates</label>
+                </div>
+                <div class="form-row" style="display:flex;align-items:center;gap:10px">
+                    <input type="checkbox" id="pref-polls" style="width:auto;margin:0" ${pref & 4 ? 'checked' : ''} disabled>
+                    <label style="margin:0">New poll notifications</label>
+                </div>
+                <div class="form-actions">
+                    <button class="btn-secondary" onclick="enableSettingsEdit()">✏️ Change Preferences</button>
+                </div>
+            </div>
+        `;
+    }
+
+    function enableSettingsEdit() {
+        ['pref-attendance','pref-payment','pref-polls'].forEach(id => {
+            document.getElementById(id).disabled = false;
+        });
+        const btn = document.querySelector('#tab-content .btn-secondary');
+        btn.className = 'btn-primary';
+        btn.textContent = 'Save Preferences';
+        btn.setAttribute('onclick', 'saveSettings()');
+    }
+
+    async function saveSettings() {
+        const attendance = document.getElementById('pref-attendance').checked ? 1 : 0;
+        const payment = document.getElementById('pref-payment').checked ? 2 : 0;
+        const polls = document.getElementById('pref-polls').checked ? 4 : 0;
+        const preference = attendance | payment | polls;
+        try {
+            await apiFetch(`/participants/${user.id}/mailing-preference`, 'PUT', { preference });
+            showAlert('settings-alert', 'Preferences saved!', 'success');
+            setTimeout(() => renderSettings(), 1000);
+        } catch (e) { showAlert('settings-alert', e.message); }
+    }
+
+    init();
+</script>
+</body>
+</html>

@@ -16,10 +16,10 @@ namespace GatherUp.BL.Services
         // Vendor management screen - "Add Vendor"
         public VendorAllocation AddVendor(int eventId, string name, decimal amountOwed)
         {
-            var ev = _eventRepo.GetById(eventId) ?? throw new NotFoundException("Event", eventId);
+            var ev = _eventRepo.GetById(eventId) ?? throw new EntityNotFoundException("Event", eventId);
 
             if (string.IsNullOrWhiteSpace(name))
-                throw new ValidationException("Vendor name cannot be empty.");
+                throw new InvalidEventDataException("Vendor name cannot be empty.");
 
             var newId = ev.Vendors.Any() ? ev.Vendors.Max(v => v.Id) + 1 : 1;
             var vendor = new VendorAllocation { Id = newId, Name = name, AmountOwed = amountOwed };
@@ -32,12 +32,12 @@ namespace GatherUp.BL.Services
         // Vendor management screen - "Add Receipt"
         public void AddReceipt(int eventId, int vendorId, ReceiptDetails receipt)
         {
-            var ev = _eventRepo.GetById(eventId) ?? throw new NotFoundException("Event", eventId);
+            var ev = _eventRepo.GetById(eventId) ?? throw new EntityNotFoundException("Event", eventId);
             var vendor = ev.Vendors.FirstOrDefault(v => v.Id == vendorId)
-                ?? throw new NotFoundException("Vendor", vendorId);
+                ?? throw new EntityNotFoundException("Vendor", vendorId);
 
             if (vendor.Receipts.Any(r => r.ReceiptNumber == receipt.ReceiptNumber))
-                throw new LockedReceiptException();
+                throw new ImmutableReceiptException();
 
             vendor.Receipts.Add(receipt);
             vendor.HasReceipt = true;
@@ -47,7 +47,7 @@ namespace GatherUp.BL.Services
         // Vendor management screen - view vendors list
         public IEnumerable<VendorAllocation> GetVendors(int eventId)
         {
-            var ev = _eventRepo.GetById(eventId) ?? throw new NotFoundException("Event", eventId);
+            var ev = _eventRepo.GetById(eventId) ?? throw new EntityNotFoundException("Event", eventId);
             return ev.Vendors;
         }
     }

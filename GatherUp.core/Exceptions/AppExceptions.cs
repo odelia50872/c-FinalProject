@@ -1,25 +1,31 @@
 namespace GatherUp.core.Exceptions
 {
-    public class NotFoundException : Exception
+    public class EntityNotFoundException : Exception
     {
-        public NotFoundException(string entityName, int id)
+        public EntityNotFoundException(string entityName, int id)
             : base($"{entityName} with ID {id} was not found.") { }
     }
 
-    public class LockedReceiptException : Exception
+    public class ImmutableReceiptException : Exception
     {
-        public LockedReceiptException()
-            : base("This receipt is locked and cannot be modified.") { }
+        public ImmutableReceiptException()
+            : base("A receipt is immutable and cannot be modified or deleted after creation.") { }
     }
 
-    public class ValidationException : Exception
+    public class InvalidEventDataException : Exception
     {
-        public ValidationException(string message) : base(message) { }
+        public InvalidEventDataException(string message) : base(message) { }
     }
 
-    public class UnauthorizedException : Exception
+    public class DuplicateUserException : Exception
     {
-        public UnauthorizedException(string message = "You are not authorized to perform this action.")
+        public DuplicateUserException(string email)
+            : base($"A user with email '{email}' already exists.") { }
+    }
+
+    public class AccessDeniedException : Exception
+    {
+        public AccessDeniedException(string message = "You are not authorized to perform this action.")
             : base(message) { }
     }
 }

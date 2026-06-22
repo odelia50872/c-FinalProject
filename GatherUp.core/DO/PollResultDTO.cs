@@ -1,5 +1,7 @@
-﻿namespace GatherUp.core.DO
+namespace GatherUp.core.DO
 {
+    // PollResultDTO is produced by Poll — it wraps the poll's questions with calculated results.
+    // Managed by PollService.GetPollResults() which calculates percentages per option.
     public class PollResultDTO
     {
         public string QuestionText { get; set; } = string.Empty;

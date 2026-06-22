@@ -1,22 +1,14 @@
-﻿namespace GatherUp.core.DO;
-
-[Flags]
-public enum MailingPreference
+namespace GatherUp.core.DO
 {
-    None = 0,
-    AttendanceConfirmation = 1,
-    PaymentConfirmation = 2,
-    PollResponses = 4
-}
-
-public enum UserRole { Participant, Manager, Host }
-
-public class Participant : Person
-{
-    public Participant() : base() { }
-    public bool? IsAttending { get; set; }
-    public bool HasPaid { get; set; }
-    public decimal AmountContributed { get; set; }
-    public MailingPreference MailingPreferences { get; set; }
-    public UserRole Role { get; set; } = UserRole.Participant;
+    // Participant inherits from Person (Id, Name, Email, PhoneNumber, Password)
+    // and adds event-specific fields: attendance, payment, mailing preferences and role.
+    public class Participant : Person
+    {
+        public Participant() : base() { }
+        public bool? IsAttending { get; set; }
+        public bool HasPaid { get; set; }
+        public decimal AmountContributed { get; set; }
+        public MailingPreference MailingPreferences { get; set; }
+        public UserRole Role { get; set; } = UserRole.Participant;
+    }
 }

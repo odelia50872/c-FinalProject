@@ -13,21 +13,26 @@ namespace GatherUp.BL.Services
             _participantRepo = participantRepo;
         }
 
-        // Login screen - email is username, phone number is password
-        public Participant Login(string email, string password)
+        // Login: email = מייל, password = תעודת זהות (נשמרת ב-Password)
+        public Participant? Login(string email, string password)
         {
-            var user = _participantRepo.GetAll()
-                .FirstOrDefault(p => p.Email == email && p.PhoneNumber == password)
-                ?? throw new UnauthorizedException("Invalid email or password.");
+            if (string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(password))
+                return null;
 
-            return user;
+            return _participantRepo.GetAll()
+                .FirstOrDefault(p =>
+                    p.Email.Equals(email, StringComparison.OrdinalIgnoreCase) &&
+                    p.Password == password);
         }
 
-        // Register screen - creates a new participant
+        // Register: password = תעודת זהות
         public Participant Register(string name, string email, string phone, string password)
         {
-            if (_participantRepo.GetAll().Any(p => p.Email == email))
-                throw new ValidationException($"A user with email {email} already exists.");
+            if (_participantRepo.GetAll().Any(p => p.Email.Equals(email, StringComparison.OrdinalIgnoreCase)))
+                throw new DuplicateUserException(email);
+
+            if (string.IsNullOrWhiteSpace(password) || !password.All(char.IsDigit) || password.Length != 9)
+                throw new InvalidEventDataException("Password must be a 9-digit ID number.");
 
             var newId = _participantRepo.GetAll().Any()
                 ? _participantRepo.GetAll().Max(p => p.Id) + 1
@@ -39,7 +44,9 @@ namespace GatherUp.BL.Services
                 Name = name,
                 Email = email,
                 PhoneNumber = phone,
-                Role = UserRole.Participant
+                Password = password,
+                Role = UserRole.Participant,
+                MailingPreferences = MailingPreference.AttendanceConfirmation | MailingPreference.PaymentConfirmation | MailingPreference.PollResponses
             };
 
             _participantRepo.Add(participant);

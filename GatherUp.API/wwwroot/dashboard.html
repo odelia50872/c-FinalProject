@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>GatherUp - My Events</title>
+    <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<nav id="main-nav"></nav>
+<div class="container">
+    <h1>My Events</h1>
+
+    <div class="tabs">
+        <button class="tab-btn active" onclick="switchTab('manager')">As Manager</button>
+        <button class="tab-btn" onclick="switchTab('participant')">As Participant</button>
+        <button class="tab-btn" onclick="switchTab('host')">As Host</button>
+    </div>
+
+    <!-- כפתור הוספה רק בטאב Manager -->
+    <div id="manager-actions" style="display:flex;justify-content:flex-end;margin-bottom:16px">
+        <button class="btn-success" onclick="showCreateModal()">+ New Event</button>
+    </div>
+
+    <div id="events-list"><div id="loading">Loading...</div></div>
+
+    <!-- Create Event Modal -->
+    <div id="create-modal" class="modal-overlay" onclick="if(event.target===this)hideCreateModal()">
+        <div class="modal-box">
+            <h2 style="margin-bottom:20px">✨ Create New Event</h2>
+            <div id="create-alert" class="alert"></div>
+            <div class="form-row"><label>Title</label><input type="text" id="ev-title" placeholder="Event name"></div>
+            <div class="form-row"><label>Date</label><input type="date" id="ev-date"></div>
+            <div class="form-row"><label>Location</label><input type="text" id="ev-location" placeholder="City or venue"></div>
+            <div class="form-row">
+                <label>Host (optional)</label>
+                <input type="text" id="ev-host-name" placeholder="Search host by name..." oninput="searchHost(this.value)">
+                <div id="host-results" style="border:1px solid var(--border);border-radius:8px;display:none;max-height:150px;overflow-y:auto;background:white"></div>
+                <input type="hidden" id="ev-host-id">
+                <small id="host-selected" style="color:var(--success);font-size:12px"></small>
+            </div>
+            <div class="form-actions">
+                <button class="btn-secondary" onclick="hideCreateModal()" style="flex:1">Cancel</button>
+                <button class="btn-primary" onclick="submitCreateEvent()" style="flex:2">Create Event</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="/app.js"></script>
+<script>
+    redirectIfNotLoggedIn();
+    buildNav('dashboard');
+
+    let allEvents = { asManager: [], asHost: [], asParticipant: [] };
+    let currentTab = 'manager';
+    let allParticipants = [];
+
+    async function loadEvents() {
+        try {
+            allEvents = await apiFetch('/events/my-events');
+            renderEvents();
+        } catch (e) {
+            document.getElementById('events-list').innerHTML = `<p style="color:red">${e.message}</p>`;
+        }
+    }
+
+    function switchTab(tab) {
+        currentTab = tab;
+        document.querySelectorAll('.tab-btn').forEach((b, i) => {
+            b.classList.toggle('active', ['manager','participant','host'][i] === tab);
+        });
+        // כפתור הוספה רק בטאב manager
+        document.getElementById('manager-actions').style.display = tab === 'manager' ? 'flex' : 'none';
+        renderEvents();
+    }
+
+    function renderEvents() {
+        const list = currentTab === 'manager' ? allEvents.asManager
+                   : currentTab === 'participant' ? allEvents.asParticipant
+                   : allEvents.asHost;
+
+        const badgeClass = currentTab === 'manager' ? 'badge-manager'
+                         : currentTab === 'participant' ? 'badge-participant'
+                         : 'badge-host';
+        const badgeLabel = currentTab === 'manager' ? 'Manager'
+                         : currentTab === 'participant' ? 'Participant'
+                         : 'Host';
+
+        if (!list || list.length === 0) {
+            document.getElementById('events-list').innerHTML = `
+                <div class="empty-state">
+                    <div class="empty-icon">📅</div>
+                    <h3>No events found</h3>
+                    <p>${currentTab === 'manager' ? 'Create your first event with the button above.' : 'You have no events in this category.'}</p>
+                </div>`;
+            return;
+        }
+
+        document.getElementById('events-list').innerHTML = list.map(ev => `
+            <div class="event-card" onclick="openEvent(${ev.id})">
+                <h3>${ev.title}</h3>
+                <p>${formatDate(ev.date)} &bull; ${ev.location}</p>
+                <div style="margin-top:8px">
+                    <span class="badge ${badgeClass}">${badgeLabel}</span>
+                </div>
+            </div>
+        `).join('');
+    }
+
+    function openEvent(id) {
+        window.location.href = `/event.html?id=${id}`;
+    }
+
+    function showCreateModal() {
+        document.getElementById('create-modal').classList.add('open');
+        document.getElementById('ev-host-id').value = '';
+        document.getElementById('host-selected').textContent = '';
+        document.getElementById('ev-host-name').value = '';
+    }
+
+    function hideCreateModal() {
+        document.getElementById('create-modal').classList.remove('open');
+    }
+
+    async function searchHost(query) {
+        const resultsEl = document.getElementById('host-results');
+        if (query.length < 2) { resultsEl.style.display = 'none'; return; }
+
+        if (allParticipants.length === 0) {
+            allParticipants = await apiFetch('/events/all-users');
+        }
+
+        const filtered = allParticipants.filter(p =>
+            p.name.toLowerCase().includes(query.toLowerCase())
+        );
+
+        if (filtered.length === 0) {
+            resultsEl.innerHTML = '<div style="padding:10px;color:#999;font-size:13px">No users found</div>';
+            resultsEl.style.display = 'block';
+            return;
+        }
+
+        resultsEl.innerHTML = filtered.map(p => `
+            <div onclick="selectHost(${p.id}, '${p.name}')"
+                 style="padding:10px;cursor:pointer;font-size:13px;border-bottom:1px solid #f0f0f0"
+                 onmouseover="this.style.background='#f0f7ff'" onmouseout="this.style.background='white'">
+                ${p.name} <span style="color:#999">${p.email}</span>
+            </div>
+        `).join('');
+        resultsEl.style.display = 'block';
+    }
+
+    function selectHost(id, name) {
+        document.getElementById('ev-host-id').value = id;
+        document.getElementById('ev-host-name').value = name;
+        document.getElementById('host-selected').textContent = `✓ Selected: ${name}`;
+        document.getElementById('host-results').style.display = 'none';
+    }
+
+    async function submitCreateEvent() {
+        const title = document.getElementById('ev-title').value;
+        const date = document.getElementById('ev-date').value;
+        const location = document.getElementById('ev-location').value;
+        const hostId = parseInt(document.getElementById('ev-host-id').value) || 0;
+
+        if (!title || !date || !location) {
+            showAlert('create-alert', 'Please fill in all required fields.');
+            return;
+        }
+
+        try {
+            const ev = await apiFetch('/events', 'POST', { title, date, location, hostId });
+            hideCreateModal();
+            window.location.href = `/event.html?id=${ev.id}`;
+        } catch (e) {
+            showAlert('create-alert', e.message);
+        }
+    }
+
+    loadEvents();
+</script>
+</body>
+</html>

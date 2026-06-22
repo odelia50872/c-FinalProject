@@ -1,4 +1,4 @@
-﻿using GatherUp.core.interfaces;
+using GatherUp.core.interfaces;
 using GatherUp.Infrastructure.XML;
 using System.Collections.Generic;
 using System.Linq;
@@ -46,11 +46,10 @@ namespace GatherUp.Infrastructure.Repositories
         {
             var list = LoadAll();
             var item = list.FirstOrDefault(e => e.Id == id);
-            if (item != null)
-            {
-                list.Remove(item);
-                SaveAll(list);
-            }
+            if (item == null)
+                throw new GatherUp.core.Exceptions.EntityNotFoundException(typeof(T).Name, id);
+            list.Remove(item);
+            SaveAll(list);
         }
     }
 }
