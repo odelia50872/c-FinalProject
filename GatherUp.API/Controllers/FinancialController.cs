@@ -31,7 +31,7 @@ namespace GatherUp.API.Controllers
                 summary.TotalIncome,
                 summary.TotalOutgoing,
                 summary.Balance,
-                PaidParticipants = summary.PaidParticipants.Select(p => new { p.Id, p.Name, p.AmountContributed }),
+                PaidParticipants = summary.PaidParticipants.Select(p => new { p.Participant.Id, p.Participant.Name, p.AmountContributed }),
                 Vendors = summary.Vendors.Select(v => new { v.Id, v.Name, v.AmountOwed })
             });
         }

@@ -26,8 +26,22 @@ namespace GatherUp.BL.Services
         public void AddParticipant(Participant participant) =>
             _participantRepo.Add(participant);
 
-        public Participant GetParticipantById(int participantId) =>
-            _participantRepo.GetById(participantId) ?? throw new EntityNotFoundException("Participant", participantId);
+        public Participant GetById(int id) =>
+            _participantRepo.GetById(id) ?? throw new EntityNotFoundException("Participant", id);
+
+        public Participant UpdateParticipant(int id, string name, string phone)
+        {
+            var participant = _participantRepo.GetById(id)
+                ?? throw new EntityNotFoundException("Participant", id);
+
+            if (string.IsNullOrWhiteSpace(name))
+                throw new InvalidEventDataException("Name cannot be empty.");
+
+            participant.Name = name;
+            participant.PhoneNumber = phone;
+            _participantRepo.Update(participant);
+            return participant;
+        }
 
         public void ConfirmAttendance(int participantId, bool isAttending)
         {
@@ -67,31 +81,10 @@ namespace GatherUp.BL.Services
                     && (ev.ParticipantData.FirstOrDefault(d => d.ParticipantId == p.Id)?.IsAttending == null)
                     && (p.MailingPreferences & MailingPreference.AttendanceConfirmation) != 0)
                 .ToList()
-                .ForEach(p =>
-                {
-                    var bodyContent =
-                        $"<p>Hi <strong>{p.Name}</strong>,</p>" +
-                        $"<p>You've been invited to the following event. Please let the organizer know if you'll be attending.</p>" +
-                        $"<div class=\"info-box\">" +
-                        $"  <div class=\"info-row\"><span class=\"info-label\">Event</span><span>{ev.Title}</span></div>" +
-                        $"  <div class=\"info-row\"><span class=\"info-label\">Date</span><span>{ev.Date:dddd, dd MMMM yyyy}</span></div>" +
-                        $"  <div class=\"info-row\"><span class=\"info-label\">Location</span><span>{ev.Location}</span></div>" +
-                        $"</div>" +
-                        $"<p>Please log in to GatherUp and confirm your attendance as soon as possible.</p>" +
-                        $"<p style=\"font-size:13px;color:#94a3b8\">If you have already responded, please ignore this reminder.</p>";
-
-                    var body = EmailTemplates.Build(
-                        "Will you be attending? \U0001f389",
-                        $"Hello {p.Name}, please confirm your attendance for \"{ev.Title}\".",
-                        bodyContent
-                    );
-
-                    _mailService.SendEmail(
-                        p.Email,
-                        $"[GatherUp] Reminder: Confirm attendance for {ev.Title}",
-                        body
-                    );
-                });
+                .ForEach(p => _mailService.SendEmail(
+                    p.Email,
+                    $"[GatherUp] Reminder: Confirm attendance for {ev.Title}",
+                    EmailTemplates.PendingInvitation(p.Name, ev.Title, ev.Date.ToString("dddd, dd MMMM yyyy"), ev.Location)));
         }
     }
 }

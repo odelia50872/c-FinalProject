@@ -33,7 +33,17 @@ namespace GatherUp.API.Controllers
         [HttpGet("{pollId}/results")]
         public IActionResult GetResults(int pollId)
         {
-            return Ok(_pollService.GetPollResults(pollId));
+            var poll = _pollService.GetPollResults(pollId);
+            var results = poll.Questions.Select(q =>
+            {
+                int total = q.Responses.Count;
+                return new PollResultDTO(q.QuestionText, q.Options.Select(opt => new OptionResultDTO(
+                    opt,
+                    q.Responses.Count(r => r.Response == opt),
+                    total == 0 ? 0 : Math.Round(q.Responses.Count(r => r.Response == opt) * 100.0 / total, 1)
+                )));
+            });
+            return Ok(results);
         }
 
         [AllowAnonymous]

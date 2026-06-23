@@ -16,8 +16,9 @@ namespace GatherUp.core.DO
             Questions= new List<PollQuestion>();
         }
 
+        private int _id;
         [XmlAttribute]
-        public int Id { get; set; }
+        public int Id { get => _id; set { if (_id == 0) _id = value; } }
         public string Name { get; set; } = string.Empty;
         public string Description { get; set; } = string.Empty;
         public DateTime ClosingDate { get; set; }

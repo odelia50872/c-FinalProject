@@ -13,7 +13,6 @@ namespace GatherUp.BL.Services
             _eventRepo = eventRepo;
         }
 
-        // Vendor management screen - "Add Vendor"
         public VendorAllocation AddVendor(int eventId, string name, decimal amountOwed)
         {
             var ev = _eventRepo.GetById(eventId) ?? throw new EntityNotFoundException("Event", eventId);
@@ -29,7 +28,6 @@ namespace GatherUp.BL.Services
             return vendor;
         }
 
-        // Vendor management screen - "Add Receipt"
         public void AddReceipt(int eventId, int vendorId, ReceiptDetails receipt)
         {
             var ev = _eventRepo.GetById(eventId) ?? throw new EntityNotFoundException("Event", eventId);
@@ -44,7 +42,6 @@ namespace GatherUp.BL.Services
             _eventRepo.Update(ev);
         }
 
-        // Vendor management screen - view vendors list
         public IEnumerable<VendorAllocation> GetVendors(int eventId)
         {
             var ev = _eventRepo.GetById(eventId) ?? throw new EntityNotFoundException("Event", eventId);

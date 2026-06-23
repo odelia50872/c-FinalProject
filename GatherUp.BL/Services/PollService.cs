@@ -58,25 +58,8 @@ namespace GatherUp.BL.Services
                 OnPollAnswerSubmitted?.Invoke(ev.Id, pollId);
         }
 
-        public IEnumerable<PollResultDTO> GetPollResults(int pollId)
-        {
-            var poll = _pollRepo.GetById(pollId) ?? throw new EntityNotFoundException("Poll", pollId);
-
-            return poll.Questions.Select(q =>
-            {
-                int total = q.Responses.Count;
-                return new PollResultDTO
-                {
-                    QuestionText = q.QuestionText,
-                    Results = q.Options.Select(opt => new OptionResultDTO
-                    {
-                        Option = opt,
-                        Votes = q.Responses.Count(r => r.Response == opt),
-                        Percentage = total == 0 ? 0 : Math.Round(q.Responses.Count(r => r.Response == opt) * 100.0 / total, 1)
-                    })
-                };
-            });
-        }
+        public Poll GetPollResults(int pollId) =>
+            _pollRepo.GetById(pollId) ?? throw new EntityNotFoundException("Poll", pollId);
 
         public IEnumerable<object> GetPollQuestions(int pollId)
         {

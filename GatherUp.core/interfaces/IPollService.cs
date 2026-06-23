@@ -9,7 +9,7 @@ namespace GatherUp.core.interfaces
 
         Poll CreatePoll(int eventId, string name, List<(string QuestionText, List<string> Options)> questions);
         void SubmitVote(int pollId, int questionId, int participantId, string answer);
-        IEnumerable<PollResultDTO> GetPollResults(int pollId);
+        Poll GetPollResults(int pollId);
         IEnumerable<object> GetPollQuestions(int pollId);
     }
 }

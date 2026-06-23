@@ -16,14 +16,12 @@
         <button class="tab-btn" onclick="switchTab('host')">As Host</button>
     </div>
 
-    <!-- כפתור הוספה רק בטאב Manager -->
     <div id="manager-actions" style="display:flex;justify-content:flex-end;margin-bottom:16px">
         <button class="btn-success" onclick="showCreateModal()">+ New Event</button>
     </div>
 
     <div id="events-list"><div id="loading">Loading...</div></div>
 
-    <!-- Create Event Modal -->
     <div id="create-modal" class="modal-overlay" onclick="if(event.target===this)hideCreateModal()">
         <div class="modal-box">
             <h2 style="margin-bottom:20px">✨ Create New Event</h2>
@@ -46,7 +44,7 @@
     </div>
 </div>
 
-<script src="/app.js"></script>
+<script src="/Jsfiles/app.js"></script>
 <script>
     redirectIfNotLoggedIn();
     buildNav('dashboard');
@@ -69,7 +67,6 @@
         document.querySelectorAll('.tab-btn').forEach((b, i) => {
             b.classList.toggle('active', ['manager','participant','host'][i] === tab);
         });
-        // כפתור הוספה רק בטאב manager
         document.getElementById('manager-actions').style.display = tab === 'manager' ? 'flex' : 'none';
         renderEvents();
     }
@@ -108,7 +105,7 @@
     }
 
     function openEvent(id) {
-        window.location.href = `/event.html?id=${id}`;
+        window.location.href = `/HtmlFiles/event.html?id=${id}`;
     }
 
     function showCreateModal() {
@@ -171,7 +168,7 @@
         try {
             const ev = await apiFetch('/events', 'POST', { title, date, location, hostId });
             hideCreateModal();
-            window.location.href = `/event.html?id=${ev.id}`;
+            window.location.href = `/HtmlFiles/event.html?id=${ev.id}`;
         } catch (e) {
             showAlert('create-alert', e.message);
         }

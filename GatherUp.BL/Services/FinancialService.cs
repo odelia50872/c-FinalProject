@@ -73,44 +73,23 @@ namespace GatherUp.BL.Services
                 .ToList();
 
             unpaid.ForEach(p =>
-            {
-                var bodyContent =
-                    $"<p>Hi <strong>{p.Name}</strong>,</p>" +
-                    $"<p>This is a friendly reminder that your payment for the following event is still <strong>pending</strong>.</p>" +
-                    $"<div class=\"info-box\">" +
-                    $"  <div class=\"info-row\"><span class=\"info-label\">Event</span><span>{ev.Title}</span></div>" +
-                    $"  <div class=\"info-row\"><span class=\"info-label\">Date</span><span>{ev.Date:dddd, dd MMMM yyyy}</span></div>" +
-                    $"  <div class=\"info-row\"><span class=\"info-label\">Location</span><span>{ev.Location}</span></div>" +
-                    $"  <div class=\"info-row\"><span class=\"info-label\">Bank</span><span>Bank 12 &bull; Branch 345 &bull; Account 678901</span></div>" +
-                    $"</div>" +
-                    $"<p>Please complete your payment as soon as possible so we can finalize the event arrangements.</p>" +
-                    $"<p style=\"font-size:13px;color:#94a3b8\">If you have already paid, please ignore this message.</p>";
-
-                var body = EmailTemplates.Build(
-                    "Payment reminder \U0001f4b3",
-                    $"Hello {p.Name}, your payment for \"{ev.Title}\" is still pending.",
-                    bodyContent
-                );
-
                 _mailService.SendEmail(
                     p.Email,
                     $"[GatherUp] Payment reminder - {ev.Title}",
-                    body
-                );
-            });
+                    EmailTemplates.PaymentReminder(p.Name, ev.Title, ev.Date.ToString("dddd, dd MMMM yyyy"), ev.Location)
+                ));
 
             return unpaid.Count;
         }
 
-        public (IEnumerable<Participant> PaidParticipants, decimal TotalIncome, IEnumerable<VendorAllocation> Vendors, decimal TotalOutgoing, decimal Balance) GetFinancialSummary(int eventId)
+        public (IEnumerable<(Participant Participant, decimal AmountContributed)> PaidParticipants, decimal TotalIncome, IEnumerable<VendorAllocation> Vendors, decimal TotalOutgoing, decimal Balance) GetFinancialSummary(int eventId)
         {
             var ev = _eventRepo.GetById(eventId) ?? throw new EntityNotFoundException("Event", eventId);
 
             var paidData = ev.ParticipantData.Where(d => d.HasPaid && d.IsAttending == true).ToList();
             var paidParticipants = paidData
-                .Select(d => _participantRepo.GetById(d.ParticipantId))
-                .Where(p => p != null)
-                .Select(p => p!)
+                .Where(d => _participantRepo.GetById(d.ParticipantId) != null)
+                .Select(d => (Participant: _participantRepo.GetById(d.ParticipantId)!, d.AmountContributed))
                 .ToList();
 
             var income = paidData.Sum(d => d.AmountContributed);

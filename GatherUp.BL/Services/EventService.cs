@@ -106,27 +106,10 @@ namespace GatherUp.BL.Services
             var ev = _eventRepo.GetById(eventId) ?? throw new EntityNotFoundException("Event", eventId);
             var host = _participantRepo.GetById(ev.EventHostId) ?? throw new EntityNotFoundException("Host", ev.EventHostId);
 
-            var bodyContent =
-                $"<p>Hi <strong>{host.Name}</strong>,</p>" +
-                $"<p>Great news! You've been selected as the <strong>host</strong> for the following event. Your role is to provide the venue and welcome the guests.</p>" +
-                $"<div class=\"info-box\">" +
-                $"  <div class=\"info-row\"><span class=\"info-label\">Event</span><span>{ev.Title}</span></div>" +
-                $"  <div class=\"info-row\"><span class=\"info-label\">Date</span><span>{ev.Date:dddd, dd MMMM yyyy}</span></div>" +
-                $"  <div class=\"info-row\"><span class=\"info-label\">Location</span><span>{ev.Location}</span></div>" +
-                $"</div>" +
-                $"<p>Please make sure everything is ready before the event date. The event manager will be in touch with more details.</p>" +
-                $"<p>Thank you for hosting with <strong>GatherUp</strong>! \U0001f389</p>";
-
-            var body = EmailTemplates.Build(
-                "You're invited to host an event! \U0001f3e0",
-                $"Hello {host.Name}, you have been selected as the host for \"{ev.Title}\".",
-                bodyContent
-            );
-
             mailService.SendEmail(
                 host.Email,
                 $"[GatherUp] You're invited to host: {ev.Title}",
-                body
+                EmailTemplates.HostInvitation(host.Name, ev.Title, ev.Date.ToString("dddd, dd MMMM yyyy"), ev.Location)
             );
         }
     }

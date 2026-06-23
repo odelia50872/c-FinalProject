@@ -5,13 +5,13 @@ function getUser() { return JSON.parse(localStorage.getItem('user') || 'null'); 
 function isLoggedIn() { return !!getToken(); }
 
 function redirectIfNotLoggedIn() {
-    if (!isLoggedIn()) { window.location.href = '/index.html'; }
+    if (!isLoggedIn()) { window.location.href = '/HtmlFiles/index.html'; }
 }
 
 function logout() {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
-    window.location.href = '/index.html';
+    window.location.href = '/HtmlFiles/index.html';
 }
 
 async function apiFetch(path, method = 'GET', body = null) {
@@ -43,7 +43,6 @@ function showAlert(id, message, type = 'error') {
         setTimeout(() => el.style.display = 'none', 4000);
         return;
     }
-    // fallback — toast שמופיע בכל דף גם בלי alert div
     showToast(message, type);
 }
 
@@ -83,13 +82,13 @@ function buildNav(active) {
     const nav = document.getElementById('main-nav');
     if (!nav) return;
     nav.innerHTML = `
-        <a href="/dashboard.html" class="logo-text">
+        <a href="/HtmlFiles/dashboard.html" class="logo-text">
             <img src="/gatherup-logo.png" alt="GatherUp" style="width:30px;height:30px;object-fit:contain;border-radius:6px">
             GatherUp
         </a>
         <div style="display:flex;align-items:center;gap:4px">
-            <a href="/dashboard.html" ${active==='dashboard'?'class="nav-active"':''}>My Events</a>
-            <a href="/profile.html" ${active==='profile'?'class="nav-active"':''}>Profile</a>
+            <a href="/HtmlFiles/dashboard.html" ${active==='dashboard'?'class="nav-active"':''}>My Events</a>
+            <a href="/HtmlFiles/profile.html" ${active==='profile'?'class="nav-active"':''}>Profile</a>
             <span class="nav-user-chip">${user.name}</span>
             <button onclick="logout()" class="nav-logout-btn">Sign out</button>
         </div>

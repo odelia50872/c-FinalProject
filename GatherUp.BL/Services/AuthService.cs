@@ -13,7 +13,6 @@ namespace GatherUp.BL.Services
             _participantRepo = participantRepo;
         }
 
-        // Login: email = מייל, password = תעודת זהות (נשמרת ב-Password)
         public Participant? Login(string email, string password)
         {
             if (string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(password))
@@ -25,7 +24,6 @@ namespace GatherUp.BL.Services
                     p.Password == password);
         }
 
-        // Register: password = תעודת זהות
         public Participant Register(string name, string email, string phone, string password)
         {
             if (_participantRepo.GetAll().Any(p => p.Email.Equals(email, StringComparison.OrdinalIgnoreCase)))

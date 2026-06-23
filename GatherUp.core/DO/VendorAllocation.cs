@@ -14,8 +14,9 @@ namespace GatherUp.core.DO
         {
             Receipts = new List<ReceiptDetails>();
         }
+        private int _id;
         [XmlAttribute]
-        public int Id { get; set; }
+        public int Id { get => _id; set { if (_id == 0) _id = value; } }
         public string Name { get; set; } = string.Empty;
         public decimal AmountOwed { get; set; }
         public bool HasReceipt { get; set; }

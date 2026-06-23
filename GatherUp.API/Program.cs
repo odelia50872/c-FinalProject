@@ -29,13 +29,12 @@ builder.Services.AddSingleton<IMailService>(sp =>
 
 builder.Services.AddSingleton<IEventService, EventService>();
 builder.Services.AddSingleton<ITokenService, TokenService>();
-builder.Services.AddSingleton<EventNotificationHandler>();
 builder.Services.AddSingleton<IAuthService, AuthService>();
-builder.Services.AddSingleton<IPersonService, PersonService>();
 builder.Services.AddSingleton<IParticipantService, ParticipantService>();
 builder.Services.AddSingleton<IFinancialService, FinancialService>();
 builder.Services.AddSingleton<IPollService, PollService>();
 builder.Services.AddSingleton<IVendorService, VendorService>();
+builder.Services.AddSingleton<EventNotificationHandler>();
 
 builder.Services.Configure<JwtSettings>(builder.Configuration.GetSection("Jwt"));
 

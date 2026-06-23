@@ -24,8 +24,7 @@ namespace GatherUp.API.Controllers
         [HttpGet("{id}")]
         public IActionResult GetParticipant(int id)
         {
-            var p = _participantService.GetParticipantById(id);
-            // isAttending and hasPaid are now per-event; return only profile data here
+            var p = _participantService.GetById(id);
             return Ok(new {
                 p.Id, p.Name, p.Email, p.PhoneNumber,
                 mailingPreferences = (int)p.MailingPreferences,

@@ -11,7 +11,7 @@ namespace GatherUp.core.interfaces
         void SetVendorAmount(int eventId, int vendorId, decimal amount);
         int SendPaymentReminders(int eventId);
         decimal GetTotalBudget(int eventId);
-        (IEnumerable<Participant> PaidParticipants, decimal TotalIncome, IEnumerable<VendorAllocation> Vendors, decimal TotalOutgoing, decimal Balance) GetFinancialSummary(int eventId);
+        (IEnumerable<(Participant Participant, decimal AmountContributed)> PaidParticipants, decimal TotalIncome, IEnumerable<VendorAllocation> Vendors, decimal TotalOutgoing, decimal Balance) GetFinancialSummary(int eventId);
         IEnumerable<(string ReceiptNumber, decimal Amount)> GetAllReceiptsSorted(int eventId);
     }
 }

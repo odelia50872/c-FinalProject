@@ -11,17 +11,17 @@ namespace GatherUp.API.Controllers
     [Authorize]
     public class PersonController : ControllerBase
     {
-        private readonly IPersonService _personService;
+        private readonly IParticipantService _participantService;
 
-        public PersonController(IPersonService personService)
+        public PersonController(IParticipantService participantService)
         {
-            _personService = personService;
+            _participantService = participantService;
         }
 
         [HttpGet("{id}")]
         public IActionResult GetPerson(int id)
         {
-            var person = _personService.GetById(id);
+            var person = _participantService.GetById(id);
             return Ok(new { person.Id, person.Name, person.Email, person.PhoneNumber, role = person.Role.ToString() });
         }
 
@@ -30,7 +30,7 @@ namespace GatherUp.API.Controllers
         {
             var callerId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
             if (callerId != id) return Forbid();
-            var updated = _personService.UpdateParticipant(id, request.Name, request.Phone);
+            var updated = _participantService.UpdateParticipant(id, request.Name, request.Phone);
             return Ok(new { updated.Id, updated.Name, updated.Email, updated.PhoneNumber });
         }
     }

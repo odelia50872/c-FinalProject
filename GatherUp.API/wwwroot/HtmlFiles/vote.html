@@ -22,16 +22,14 @@
     <div id="vote-content"><div id="loading">Loading poll...</div></div>
 
     <div class="card" style="display:flex;gap:12px;justify-content:flex-end;margin-top:8px">
-        <a id="back-link2" href="#">
-            <button type="button" class="btn-secondary">Cancel</button>
-        </a>
+        <button type="button" class="btn-secondary" id="cancel-btn">Cancel</button>
         <button class="btn-primary" onclick="submitVotes()" style="padding:12px 32px;font-size:15px">
             ✓ Submit Votes
         </button>
     </div>
 </div>
 
-<script src="/app.js"></script>
+<script src="/Jsfiles/app.js"></script>
 <script>
     redirectIfNotLoggedIn();
     buildNav('dashboard');
@@ -40,8 +38,8 @@
     const pollId = parseInt(params.get('pollId'));
     const eventId = params.get('eventId');
 
-    document.getElementById('back-link').href = `/event.html?id=${eventId}`;
-    document.getElementById('back-link2').href = `/event.html?id=${eventId}`;
+    document.getElementById('back-link').href = `/HtmlFiles/event.html?id=${eventId}`;
+    document.getElementById('cancel-btn').onclick = () => window.location.href = `/HtmlFiles/event.html?id=${eventId}`;
 
     let pollQuestions = [];
 
@@ -81,7 +79,7 @@
                 await apiFetch(`/polls/${pollId}/vote`, 'POST', { questionId, answer: radio.value });
             }
             showAlert('vote-alert', '✓ Votes submitted successfully!', 'success');
-            setTimeout(() => window.location.href = `/event.html?id=${eventId}`, 1500);
+            setTimeout(() => window.location.href = `/HtmlFiles/event.html?id=${eventId}`, 1500);
         } catch (e) {
             showAlert('vote-alert', e.message);
             btn.disabled = false;

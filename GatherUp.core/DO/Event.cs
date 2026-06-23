@@ -14,8 +14,9 @@ namespace GatherUp.core.DO
             PollIds = new List<int>();
         }
 
+        private int _id;
         [XmlAttribute]
-        public int Id { get; set; }
+        public int Id { get => _id; set { if (_id == 0) _id = value; } }
 
         [Required(ErrorMessage = "Event title is required")]
         public string Title { get; set; } = string.Empty;

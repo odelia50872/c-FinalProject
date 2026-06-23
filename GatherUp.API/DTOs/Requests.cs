@@ -22,6 +22,10 @@ namespace GatherUp.API.DTOs
     public record AddVendorRequest(string Name, decimal AmountOwed);
     public record AddReceiptRequest(decimal Amount, DateTime Date);
 
+    // Poll Results
+    public record PollResultDTO(string QuestionText, IEnumerable<OptionResultDTO> Results);
+    public record OptionResultDTO(string Option, int Votes, double Percentage);
+
     // Polls
     public record CreatePollRequest(string Name, List<QuestionRequest> Questions);
     public record QuestionRequest(string QuestionText, List<string> Options);
