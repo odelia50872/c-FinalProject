@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ArrayOfPoll xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+  <Poll Id="1">
+    <Name>סקר על ארוחה </Name>
+    <Description />
+    <ClosingDate>0001-01-01T00:00:00</ClosingDate>
+    <Questions>
+      <PollQuestion>
+        <Id>100</Id>
+        <QuestionText>איזה ארוחה אתם רוצות לאכול ?</QuestionText>
+        <Options>
+          <string>חלבי</string>
+          <string>בשרי</string>
+        </Options>
+        <Responses />
+      </PollQuestion>
+    </Questions>
+  </Poll>
+  <Poll Id="2">
+    <Name>סקר על ארוחה </Name>
+    <Description />
+    <ClosingDate>0001-01-01T00:00:00</ClosingDate>
+    <Questions>
+      <PollQuestion>
+        <Id>200</Id>
+        <QuestionText>איזה ארוחה אתם רוצות לאכול ?</QuestionText>
+        <Options>
+          <string>חלבי</string>
+          <string>בשרי</string>
+        </Options>
+        <Responses>
+          <PollResponse>
+            <ParticipantId>2</ParticipantId>
+            <Response>חלבי</Response>
+          </PollResponse>
+          <PollResponse>
+            <ParticipantId>3</ParticipantId>
+            <Response>חלבי</Response>
+          </PollResponse>
+        </Responses>
+      </PollQuestion>
+    </Questions>
+  </Poll>
+  <Poll Id="3">
+    <Name>סקר על ארוחה </Name>
+    <Description />
+    <ClosingDate>0001-01-01T00:00:00</ClosingDate>
+    <Questions>
+      <PollQuestion>
+        <Id>300</Id>
+        <QuestionText>איזה ארוחה אתם רוצות לאכול ?</QuestionText>
+        <Options>
+          <string>חלבי</string>
+          <string>בשרי</string>
+        </Options>
+        <Responses>
+          <PollResponse>
+            <ParticipantId>3</ParticipantId>
+            <Response>בשרי</Response>
+          </PollResponse>
+        </Responses>
+      </PollQuestion>
+    </Questions>
+  </Poll>
+  <Poll Id="4">
+    <Name>סקר תוכנית</Name>
+    <Description />
+    <ClosingDate>0001-01-01T00:00:00</ClosingDate>
+    <Questions>
+      <PollQuestion>
+        <Id>400</Id>
+        <QuestionText>איזה תוכנית אתם רוצות שנעשה?</QuestionText>
+        <Options>
+          <string>משחק אישיות</string>
+          <string>ריקוד</string>
+          <string>יצירה</string>
+        </Options>
+        <Responses>
+          <PollResponse>
+            <ParticipantId>1</ParticipantId>
+            <Response>ריקוד</Response>
+          </PollResponse>
+        </Responses>
+      </PollQuestion>
+    </Questions>
+  </Poll>
+  <Poll Id="5">
+    <Name>סקר תוכנית</Name>
+    <Description />
+    <ClosingDate>0001-01-01T00:00:00</ClosingDate>
+    <Questions>
+      <PollQuestion>
+        <Id>500</Id>
+        <QuestionText>איזה תוכנית אתם רוצות שנעשה?</QuestionText>
+        <Options>
+          <string>משחק אישיות</string>
+          <string>ריקוד</string>
+        </Options>
+        <Responses />
+      </PollQuestion>
+      <PollQuestion>
+        <Id>501</Id>
+        <QuestionText>איך אתם רוצות שיקראו לשוואר </QuestionText>
+        <Options>
+          <string>חתן כלה</string>
+          <string>אילה כלה</string>
+        </Options>
+        <Responses />
+      </PollQuestion>
+    </Questions>
+  </Poll>
+</ArrayOfPoll>

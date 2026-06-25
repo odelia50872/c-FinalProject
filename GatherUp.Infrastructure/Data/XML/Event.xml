@@ -1,0 +1,172 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ArrayOfEvent xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+  <Event Id="1">
+    <Title>שוואר </Title>
+    <Date>2026-06-28T00:00:00</Date>
+    <Location>נתניה</Location>
+    <ParticipantIds>
+      <int>4</int>
+      <int>2</int>
+      <int>3</int>
+      <int>1</int>
+    </ParticipantIds>
+    <ParticipantData>
+      <EventParticipantData ParticipantId="4">
+        <IsAttending>true</IsAttending>
+        <HasPaid>false</HasPaid>
+        <AmountContributed>0</AmountContributed>
+      </EventParticipantData>
+      <EventParticipantData ParticipantId="2">
+        <IsAttending>true</IsAttending>
+        <HasPaid>true</HasPaid>
+        <AmountContributed>100</AmountContributed>
+      </EventParticipantData>
+      <EventParticipantData ParticipantId="3">
+        <IsAttending>true</IsAttending>
+        <HasPaid>true</HasPaid>
+        <AmountContributed>200</AmountContributed>
+      </EventParticipantData>
+      <EventParticipantData ParticipantId="1">
+        <IsAttending>true</IsAttending>
+        <HasPaid>false</HasPaid>
+        <AmountContributed>0</AmountContributed>
+      </EventParticipantData>
+    </ParticipantData>
+    <EventManagerId>4</EventManagerId>
+    <EventHostId>0</EventHostId>
+    <Vendors>
+      <VendorAllocation Id="1">
+        <Name>בלונים</Name>
+        <AmountOwed>200</AmountOwed>
+        <HasReceipt>true</HasReceipt>
+        <Receipts>
+          <ReceiptDetails Id="0">
+            <ReceiptNumber>REC-20260623-60B898</ReceiptNumber>
+            <Amount>100</Amount>
+            <Date>2026-06-23T00:00:00</Date>
+            <FilePath />
+          </ReceiptDetails>
+        </Receipts>
+      </VendorAllocation>
+    </Vendors>
+    <PollIds>
+      <int>2</int>
+      <int>3</int>
+      <int>4</int>
+    </PollIds>
+  </Event>
+  <Event Id="2">
+    <Title>מסיבת סיום</Title>
+    <Date>2026-06-28T00:00:00</Date>
+    <Location>ירושלים</Location>
+    <ParticipantIds>
+      <int>2</int>
+    </ParticipantIds>
+    <ParticipantData>
+      <EventParticipantData ParticipantId="2">
+        <IsAttending>true</IsAttending>
+        <HasPaid>false</HasPaid>
+        <AmountContributed>0</AmountContributed>
+      </EventParticipantData>
+    </ParticipantData>
+    <EventManagerId>2</EventManagerId>
+    <EventHostId>3</EventHostId>
+    <Vendors />
+    <PollIds>
+      <int>1</int>
+    </PollIds>
+  </Event>
+  <Event Id="3">
+    <Title>טיול לחול</Title>
+    <Date>2026-06-24T00:00:00</Date>
+    <Location>ארצות הברית</Location>
+    <ParticipantIds>
+      <int>1</int>
+    </ParticipantIds>
+    <ParticipantData>
+      <EventParticipantData ParticipantId="1">
+        <IsAttending>true</IsAttending>
+        <HasPaid>false</HasPaid>
+        <AmountContributed>0</AmountContributed>
+      </EventParticipantData>
+    </ParticipantData>
+    <EventManagerId>1</EventManagerId>
+    <EventHostId>2</EventHostId>
+    <Vendors />
+    <PollIds />
+  </Event>
+  <Event Id="4">
+    <Title>מסיבת סיום</Title>
+    <Date>2026-06-28T00:00:00</Date>
+    <Location>ירושלים</Location>
+    <ParticipantIds>
+      <int>3</int>
+    </ParticipantIds>
+    <ParticipantData>
+      <EventParticipantData ParticipantId="3">
+        <IsAttending>true</IsAttending>
+        <HasPaid>false</HasPaid>
+        <AmountContributed>0</AmountContributed>
+      </EventParticipantData>
+    </ParticipantData>
+    <EventManagerId>3</EventManagerId>
+    <EventHostId>0</EventHostId>
+    <Vendors>
+      <VendorAllocation Id="1">
+        <Name>בלונים</Name>
+        <AmountOwed>200</AmountOwed>
+        <HasReceipt>true</HasReceipt>
+        <Receipts>
+          <ReceiptDetails Id="0">
+            <ReceiptNumber>REC-20260623-B16E6C</ReceiptNumber>
+            <Amount>50</Amount>
+            <Date>2026-06-23T00:00:00</Date>
+            <FilePath />
+          </ReceiptDetails>
+        </Receipts>
+      </VendorAllocation>
+    </Vendors>
+    <PollIds />
+  </Event>
+  <Event Id="5">
+    <Title>מסיבת סיום</Title>
+    <Date>2026-06-28T00:00:00</Date>
+    <Location>ירושלים</Location>
+    <ParticipantIds>
+      <int>3</int>
+      <int>4</int>
+    </ParticipantIds>
+    <ParticipantData>
+      <EventParticipantData ParticipantId="3">
+        <IsAttending>true</IsAttending>
+        <HasPaid>false</HasPaid>
+        <AmountContributed>0</AmountContributed>
+      </EventParticipantData>
+      <EventParticipantData ParticipantId="4">
+        <IsAttending xsi:nil="true" />
+        <HasPaid>false</HasPaid>
+        <AmountContributed>0</AmountContributed>
+      </EventParticipantData>
+    </ParticipantData>
+    <EventManagerId>3</EventManagerId>
+    <EventHostId>1</EventHostId>
+    <Vendors>
+      <VendorAllocation Id="1">
+        <Name>בלונים</Name>
+        <AmountOwed>200</AmountOwed>
+        <HasReceipt>true</HasReceipt>
+        <Receipts>
+          <ReceiptDetails Id="0">
+            <ReceiptNumber>REC-20260624-857FB3</ReceiptNumber>
+            <Amount>100</Amount>
+            <Date>2026-06-24T00:00:00</Date>
+            <FilePath />
+          </ReceiptDetails>
+        </Receipts>
+      </VendorAllocation>
+    </Vendors>
+    <PollIds>
+      <int>5</int>
+    </PollIds>
+  </Event>
+</ArrayOfEvent>

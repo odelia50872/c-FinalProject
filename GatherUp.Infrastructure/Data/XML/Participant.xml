@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ArrayOfParticipant xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+  <Participant Id="1">
+    <Name>אודליה</Name>
+    <Email>odelia50872@gmail.com</Email>
+    <PhoneNumber>odelia50872@gmail.com</PhoneNumber>
+    <Password>210028221</Password>
+    <MailingPreferences>AttendanceConfirmation PaymentConfirmation PollResponses</MailingPreferences>
+    <Role>Manager</Role>
+  </Participant>
+  <Participant Id="2">
+    <Name>אביטל</Name>
+    <Email>avitalbc123@gmail.com</Email>
+    <PhoneNumber>avitalbc123@gmail.com</PhoneNumber>
+    <Password>327584173</Password>
+    <MailingPreferences>PaymentConfirmation PollResponses</MailingPreferences>
+    <Role>Manager</Role>
+  </Participant>
+  <Participant Id="3">
+    <Name>שיראל</Name>
+    <Email>shirel0583260692@gmail.com</Email>
+    <PhoneNumber>shirel0583260692@gmail.com</PhoneNumber>
+    <Password>123456789</Password>
+    <MailingPreferences>PaymentConfirmation PollResponses</MailingPreferences>
+    <Role>Manager</Role>
+  </Participant>
+  <Participant Id="4">
+    <Name>Odelia</Name>
+    <Email>naksh@g.jct.ac.il</Email>
+    <PhoneNumber>naksh@g.jct.ac.il</PhoneNumber>
+    <Password>123456789</Password>
+    <MailingPreferences>AttendanceConfirmation PaymentConfirmation PollResponses</MailingPreferences>
+    <Role>Manager</Role>
+  </Participant>
+</ArrayOfParticipant>
